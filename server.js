@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 // Sessão
 app.use(session({
-  secret: process.env.JWT_SECRET || 'FoquinhosSecretos2025',
+  secret: process.env.JWT_SECRET || 'FoguinhosSecretos2025',
   resave: false,
   saveUninitialized: true,
 }));
@@ -24,7 +24,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const db = new sqlite3.Database('./foquinhos.db');
 db.serialize(() => {
   db.run(`
-    CREATE TABLE IF NOT EXISTS foquinhos (
+    CREATE TABLE IF NOT EXISTS foguinhos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT,
       dias INTEGER,
@@ -91,21 +91,21 @@ app.get('/api/user', (req, res) => {
 });
 
 // API - Adicionar Foquinho
-app.post('/api/foquinhos', (req, res) => {
+app.post('/api/foguinhos', (req, res) => {
   const { nome, dias, skin, dono_secundario } = req.body;
   const dono_principal = req.session.user?.name || 'desconhecido';
 
   // Verifica duplicidade
   db.get(`
-    SELECT * FROM foquinhos
+    SELECT * FROM foguinhos
     WHERE nome = ? AND dono_principal = ?
   `, [nome, dono_principal], (err, row) => {
     if (row) {
-      return res.status(400).json({ message: 'Foquinho já registrado por este usuário.' });
+      return res.status(400).json({ message: 'Foguinho já registrado por este usuário.' });
     }
 
     db.run(`
-      INSERT INTO foquinhos (nome, dias, skin, dono_principal, dono_secundario)
+      INSERT INTO foguinhos (nome, dias, skin, dono_principal, dono_secundario)
       VALUES (?, ?, ?, ?, ?)
     `, [nome, dias, skin, dono_principal, dono_secundario], function(err) {
       if (err) {
@@ -117,10 +117,10 @@ app.post('/api/foquinhos', (req, res) => {
 });
 
 // API - Listar todos os Foquinhos
-app.get('/api/foquinhos', (req, res) => {
-  db.all('SELECT * FROM foquinhos', [], (err, rows) => {
+app.get('/api/foguinhos', (req, res) => {
+  db.all('SELECT * FROM foguinhos', [], (err, rows) => {
     if (err) {
-      return res.status(500).json({ message: 'Erro ao buscar foquinhos.' });
+      return res.status(500).json({ message: 'Erro ao buscar foguinhos.' });
     }
     res.json(rows);
   });
