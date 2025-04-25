@@ -1,7 +1,7 @@
 {
   "name": "login-tiktok",
   "version": "1.0.0",
-  "description": "Login TikTok + Foquinhos backend",
+  "description": "Login TikTok + Foguinhos backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
