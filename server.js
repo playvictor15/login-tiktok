@@ -35,18 +35,18 @@ db.serialize(() => {
   `);
 });
 
-// Rotas
+// Rota inicial
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// Iniciar login com TikTok
+// Login com TikTok
 app.get('/auth/login', (req, res) => {
   const redirect_uri = encodeURIComponent(process.env.REDIRECT_URI);
   res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
 });
 
-// Callback TikTok
+// Callback do TikTok
 app.get('/auth/callback', async (req, res) => {
   const code = req.query.code;
   const redirect_uri = process.env.REDIRECT_URI;
@@ -62,11 +62,9 @@ app.get('/auth/callback', async (req, res) => {
 
     const access_token = response.data.access_token;
 
-    // Buscar dados do usuário
+    // Dados do usuário TikTok
     const userData = await axios.get('https://open.tiktokapis.com/v2/user/info/', {
-      headers: {
-        Authorization: `Bearer ${access_token}`
-      }
+      headers: { Authorization: `Bearer ${access_token}` }
     });
 
     req.session.user = {
@@ -90,12 +88,11 @@ app.get('/api/user', (req, res) => {
   }
 });
 
-// API - Adicionar Foquinho
+// API - Adicionar Foguinho
 app.post('/api/foguinhos', (req, res) => {
   const { nome, dias, skin, dono_secundario } = req.body;
   const dono_principal = req.session.user?.name || 'desconhecido';
 
-  // Verifica duplicidade
   db.get(`
     SELECT * FROM foguinhos
     WHERE nome = ? AND dono_principal = ?
@@ -109,14 +106,14 @@ app.post('/api/foguinhos', (req, res) => {
       VALUES (?, ?, ?, ?, ?)
     `, [nome, dias, skin, dono_principal, dono_secundario], function(err) {
       if (err) {
-        return res.status(500).json({ message: 'Erro ao adicionar Foquinho.' });
+        return res.status(500).json({ message: 'Erro ao adicionar Foguinho.' });
       }
       res.json({ id: this.lastID, nome, dias, skin });
     });
   });
 });
 
-// API - Listar todos os Foquinhos
+// API - Listar todos os Foguinhos
 app.get('/api/foguinhos', (req, res) => {
   db.all('SELECT * FROM foguinhos', [], (err, rows) => {
     if (err) {
