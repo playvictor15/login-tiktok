@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard - Foquinhos</title>
+  <title>Dashboard - Foguinhos</title>
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -23,16 +23,16 @@
   <h1>Bem-vindo, <span id="username"></span>!</h1>
   <img id="avatar" src="" alt="avatar" width="100" style="border-radius: 50%;" />
 
-  <h2>Adicionar um Foquinho</h2>
+  <h2>Adicionar um Foguinho</h2>
   <form id="foquinhoForm">
-    <input type="text" id="nome" placeholder="Nome do Foquinho" required />
+    <input type="text" id="nome" placeholder="Nome do Foguinho" required />
     <input type="number" id="dias" placeholder="Dias juntos" required />
     <input type="text" id="skin" placeholder="Skin atual" required />
     <input type="text" id="dono2" placeholder="Outro dono (TikTok username)" required />
     <button type="submit">Adicionar</button>
   </form>
 
-  <h2>Foquinhos no mundo</h2>
+  <h2>Foguinhos no mundo</h2>
   <ul id="foquinhosList"></ul>
 
   <script>
@@ -45,10 +45,10 @@
       }
     }
 
-    async function carregarFoquinhos() {
+    async function carregarFoguinhos() {
       const res = await fetch('/api/foquinhos');
       const lista = await res.json();
-      const ul = document.getElementById('foquinhosList');
+      const ul = document.getElementById('foguinhosList');
       ul.innerHTML = '';
       lista.forEach(f => {
         const li = document.createElement('li');
@@ -57,7 +57,7 @@
       });
     }
 
-    document.getElementById('foquinhoForm').addEventListener('submit', async e => {
+    document.getElementById('foguinhoForm').addEventListener('submit', async e => {
       e.preventDefault();
       const body = {
         nome: document.getElementById('nome').value,
@@ -65,14 +65,14 @@
         skin: document.getElementById('skin').value,
         dono_secundario: document.getElementById('dono2').value
       };
-      const res = await fetch('/api/foquinhos', {
+      const res = await fetch('/api/foguinhos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
 
       if (res.ok) {
-        alert('Foquinho adicionado!');
+        alert('Foguinho adicionado!');
         carregarFoquinhos();
       } else {
         const msg = await res.json();
