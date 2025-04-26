@@ -1,5 +1,5 @@
 require('dotenv').config();
-require('dotenv').config();
+rrequire('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
@@ -41,12 +41,12 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// Login com TikTok (agora detectando sandbox ou produção)
+// Login com TikTok (detectando sandbox ou produção corretamente)
 app.get('/auth/login', (req, res) => {
   const redirect_uri = encodeURIComponent(process.env.REDIRECT_URI);
 
   const baseAuthUrl = process.env.TIKTOK_ENV === 'sandbox'
-    ? 'https://open-sandbox.tiktokapis.com/v2/auth/authorize/'
+    ? 'https://www-sandbox.tiktok.com/v2/auth/authorize/'
     : 'https://www.tiktok.com/v2/auth/authorize/';
 
   res.redirect(`${baseAuthUrl}?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
@@ -72,7 +72,6 @@ app.get('/auth/callback', async (req, res) => {
 
     const access_token = response.data.access_token;
 
-    // Buscar dados do usuário
     const baseUserInfoUrl = process.env.TIKTOK_ENV === 'sandbox'
       ? 'https://open-sandbox.tiktokapis.com/v2/user/info/'
       : 'https://open.tiktokapis.com/v2/user/info/';
