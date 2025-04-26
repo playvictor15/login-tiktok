@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
@@ -40,10 +41,15 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// Login com TikTok
+// Login com TikTok (agora detectando sandbox ou produção)
 app.get('/auth/login', (req, res) => {
   const redirect_uri = encodeURIComponent(process.env.REDIRECT_URI);
-  res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
+
+  const baseAuthUrl = process.env.TIKTOK_ENV === 'sandbox'
+    ? 'https://open-sandbox.tiktokapis.com/v2/auth/authorize/'
+    : 'https://www.tiktok.com/v2/auth/authorize/';
+
+  res.redirect(`${baseAuthUrl}?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
 });
 
 // Callback do TikTok
@@ -52,7 +58,11 @@ app.get('/auth/callback', async (req, res) => {
   const redirect_uri = process.env.REDIRECT_URI;
 
   try {
-    const response = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', {
+    const baseTokenUrl = process.env.TIKTOK_ENV === 'sandbox'
+      ? 'https://open-sandbox.tiktokapis.com/v2/oauth/token/'
+      : 'https://open.tiktokapis.com/v2/oauth/token/';
+
+    const response = await axios.post(baseTokenUrl, {
       client_key: process.env.TIKTOK_CLIENT_KEY,
       client_secret: process.env.TIKTOK_CLIENT_SECRET,
       code,
@@ -62,8 +72,12 @@ app.get('/auth/callback', async (req, res) => {
 
     const access_token = response.data.access_token;
 
-    // Dados do usuário TikTok
-    const userData = await axios.get('https://open.tiktokapis.com/v2/user/info/', {
+    // Buscar dados do usuário
+    const baseUserInfoUrl = process.env.TIKTOK_ENV === 'sandbox'
+      ? 'https://open-sandbox.tiktokapis.com/v2/user/info/'
+      : 'https://open.tiktokapis.com/v2/user/info/';
+
+    const userData = await axios.get(baseUserInfoUrl, {
       headers: { Authorization: `Bearer ${access_token}` }
     });
 
@@ -74,7 +88,7 @@ app.get('/auth/callback', async (req, res) => {
 
     res.redirect('/dashboard.html');
   } catch (err) {
-    console.error('Erro no login:', err.message);
+    console.error('Erro no login:', err.response?.data || err.message);
     res.send('Erro ao autenticar com o TikTok');
   }
 });
