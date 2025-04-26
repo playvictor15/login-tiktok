@@ -35,31 +35,29 @@ db.serialize(() => {
   `);
 });
 
-// Rota inicial
+// Página inicial
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
-// Login com TikTok (detectando sandbox ou produção corretamente)
+// Login TikTok (sempre pelo site oficial, sem sandbox aqui)
 app.get('/auth/login', (req, res) => {
   const redirect_uri = encodeURIComponent(process.env.REDIRECT_URI);
 
-  const baseAuthUrl = process.env.TIKTOK_ENV === 'sandbox'
-    ? 'https://www-sandbox.tiktok.com/v2/auth/authorize/'
-    : 'https://www.tiktok.com/v2/auth/authorize/';
+  const baseAuthUrl = 'https://www.tiktok.com/v2/auth/authorize/';
 
   res.redirect(`${baseAuthUrl}?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
 });
 
-// Callback do TikTok
+// Callback TikTok
 app.get('/auth/callback', async (req, res) => {
   const code = req.query.code;
   const redirect_uri = process.env.REDIRECT_URI;
 
   try {
-    const baseTokenUrl = process.env.TIKTOK_ENV === 'sandbox'
-      ? 'https://open-sandbox.tiktokapis.com/v2/oauth/token/'
-      : 'https://open.tiktokapis.com/v2/oauth/token/';
+    // Usar sandbox para pegar token e user info
+    const baseTokenUrl = 'https://open-sandbox.tiktokapis.com/v2/oauth/token/';
+    const baseUserInfoUrl = 'https://open-sandbox.tiktokapis.com/v2/user/info/';
 
     const response = await axios.post(baseTokenUrl, {
       client_key: process.env.TIKTOK_CLIENT_KEY,
@@ -70,10 +68,6 @@ app.get('/auth/callback', async (req, res) => {
     });
 
     const access_token = response.data.access_token;
-
-    const baseUserInfoUrl = process.env.TIKTOK_ENV === 'sandbox'
-      ? 'https://open-sandbox.tiktokapis.com/v2/user/info/'
-      : 'https://open.tiktokapis.com/v2/user/info/';
 
     const userData = await axios.get(baseUserInfoUrl, {
       headers: { Authorization: `Bearer ${access_token}` }
