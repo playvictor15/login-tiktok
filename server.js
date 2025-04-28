@@ -35,15 +35,14 @@ db.serialize(() => {
   `);
 });
 
-// Página inicial
+// Página inicial - carrega tela de login
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+  res.sendFile(path.join(__dirname, 'public/login.html'));
 });
 
-// Login TikTok (sempre pelo site oficial, sem sandbox aqui)
+// Iniciar login com TikTok
 app.get('/auth/login', (req, res) => {
   const redirect_uri = encodeURIComponent(process.env.REDIRECT_URI);
-
   const baseAuthUrl = 'https://www.tiktok.com/v2/auth/authorize/';
 
   res.redirect(`${baseAuthUrl}?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
@@ -55,11 +54,7 @@ app.get('/auth/callback', async (req, res) => {
   const redirect_uri = process.env.REDIRECT_URI;
 
   try {
-    // Usar sandbox para pegar token e user info
-    const baseTokenUrl = 'https://open-sandbox.tiktokapis.com/v2/oauth/token/';
-    const baseUserInfoUrl = 'https://open-sandbox.tiktokapis.com/v2/user/info/';
-
-    const response = await axios.post(baseTokenUrl, {
+    const response = await axios.post('https://open-sandbox.tiktokapis.com/v2/oauth/token/', {
       client_key: process.env.TIKTOK_CLIENT_KEY,
       client_secret: process.env.TIKTOK_CLIENT_SECRET,
       code,
@@ -69,7 +64,7 @@ app.get('/auth/callback', async (req, res) => {
 
     const access_token = response.data.access_token;
 
-    const userData = await axios.get(baseUserInfoUrl, {
+    const userData = await axios.get('https://open-sandbox.tiktokapis.com/v2/user/info/', {
       headers: { Authorization: `Bearer ${access_token}` }
     });
 
@@ -78,7 +73,8 @@ app.get('/auth/callback', async (req, res) => {
       avatar: userData.data.data.user.avatar_url
     };
 
-    res.redirect('/dashboard.html');
+    // Após login, redireciona para o Mundo dos Foquinhos
+    res.redirect('/index.html');
   } catch (err) {
     console.error('Erro no login:', err.response?.data || err.message);
     res.send('Erro ao autenticar com o TikTok');
