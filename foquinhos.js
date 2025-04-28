@@ -1,0 +1,1 @@
+// Gerenciamento dos foquinhos
