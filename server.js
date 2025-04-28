@@ -1,0 +1,1 @@
+// Servidor atualizado para login TikTok + redirecionar para Mundo
