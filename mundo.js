@@ -1,3 +1,4 @@
+// mundo.js
 import * as THREE from 'https://cdn.skypack.dev/three@0.152.2';
 
 export function criarMundo3D() {
@@ -10,10 +11,12 @@ export function criarMundo3D() {
   const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas') });
   renderer.setSize(window.innerWidth, window.innerHeight);
 
+  // Luz
   const luz = new THREE.DirectionalLight(0xffffff, 1);
   luz.position.set(5, 10, 7.5);
   scene.add(luz);
 
+  // Solo
   const planoGeo = new THREE.PlaneGeometry(100, 100);
   const planoMat = new THREE.MeshStandardMaterial({ color: 0x66bb66 });
   const solo = new THREE.Mesh(planoGeo, planoMat);
@@ -21,12 +24,7 @@ export function criarMundo3D() {
   solo.name = 'chao';
   scene.add(solo);
 
-  criarDivisoesDoMundo(scene);
-
-  return { scene, rendererInstance: renderer, cameraInstance: camera };
-}
-
-function criarDivisoesDoMundo(scene) {
+  // Áreas: sala fria e cemitério
   const salaFria = new THREE.Mesh(
     new THREE.BoxGeometry(10, 0.1, 10),
     new THREE.MeshStandardMaterial({ color: 0xadd8e6 })
@@ -40,4 +38,6 @@ function criarDivisoesDoMundo(scene) {
   );
   cemiterio.position.set(15, 0.05, 0);
   scene.add(cemiterio);
+
+  return { scene, rendererInstance: renderer, cameraInstance: camera };
 }
