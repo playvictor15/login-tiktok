@@ -1,4 +1,10 @@
 // main.js
+fetch('/api/user').then(res => {
+  if (!res.ok) {
+    window.location.href = '/dashboard.html';
+  }
+});
+
 import * as THREE from 'https://cdn.skypack.dev/three@0.152.2';
 import { criarMundo3D } from './mundo.js';
 import { criarFoguinho } from './foguinhos.js';
