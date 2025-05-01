@@ -1,5 +1,4 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.152.2';
-import { obterFoguinhosDoUsuario } from './login.js';
 import { criarMundo3D } from './mundo.js';
 import { criarFoguinho } from './foguinhos.js';
 
@@ -8,7 +7,7 @@ let destino = null;
 
 async function init() {
   const usuario = await fetch('/api/user').then(res => res.json()).catch(() => null);
-  if (!usuario?.nome) {
+  if (!usuario?.name) {
     window.location.href = '/login.html';
     return;
   }
@@ -21,7 +20,6 @@ async function init() {
 
   const { scene, rendererInstance, cameraInstance } = criarMundo3D();
 
-  const todosFoguinhos = [];
   let posX = 0;
 
   foguinhosData.forEach((f) => {
@@ -30,7 +28,6 @@ async function init() {
     if (f.tipo === 'ativo' && !principal) {
       principal = foguinho;
     }
-    todosFoguinhos.push(foguinho);
     scene.add(foguinho);
     posX += 1.5;
   });
