@@ -138,10 +138,9 @@
           body: JSON.stringify(body)
         });
         if (res.ok) {
-          alert('Foguinho adicionado!');
-          carregarFoguinhos();
-          document.getElementById('foguinhoForm').reset();
-        } else {
+  alert('Foguinho adicionado! Redirecionando para o mundo...');
+  window.location.href = '/';
+} else {
           const msg = await res.json();
           alert('Erro: ' + msg.message);
         }
