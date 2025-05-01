@@ -33,7 +33,12 @@ db.serialize(() => {
 });
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+  if (!req.session.user) {
+    return res.redirect('/dashboard.html');
+  }
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 });
 
 app.get('/auth/login', (req, res) => {
