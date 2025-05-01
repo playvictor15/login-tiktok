@@ -1,3 +1,4 @@
+// main.js
 import * as THREE from 'https://cdn.skypack.dev/three@0.152.2';
 import { criarMundo3D } from './mundo.js';
 import { criarFoguinho } from './foguinhos.js';
@@ -6,28 +7,20 @@ let principal = null;
 let destino = null;
 
 async function init() {
-  const usuario = await fetch('/api/user').then(res => res.json()).catch(() => null);
-  if (!usuario?.name) {
-    window.location.href = '/login.html';
-    return;
-  }
-
-  const foguinhosData = [
-    { nome: 'Foguinho Azul', tipo: 'ativo' },
-    { nome: 'Foguinho Gelo', tipo: 'congelado' },
-    { nome: 'Foguinho Fantasma', tipo: 'apagado' }
-  ];
-
   const { scene, rendererInstance, cameraInstance } = criarMundo3D();
 
-  let posX = 0;
+  // Exemplo de dados mockados
+  const dadosFoguinhos = [
+    { tipo: 'ativo' },
+    { tipo: 'congelado' },
+    { tipo: 'apagado' }
+  ];
 
-  foguinhosData.forEach((f) => {
-    const foguinho = criarFoguinho(f.tipo);
+  let posX = 0;
+  dadosFoguinhos.forEach(data => {
+    const foguinho = criarFoguinho(data.tipo);
     foguinho.position.set(posX, 0.5, 0);
-    if (f.tipo === 'ativo' && !principal) {
-      principal = foguinho;
-    }
+    if (!principal && data.tipo === 'ativo') principal = foguinho;
     scene.add(foguinho);
     posX += 1.5;
   });
@@ -47,7 +40,6 @@ async function init() {
     raycaster.setFromCamera(mouse, cameraInstance);
     const chao = scene.children.find(obj => obj.name === 'chao');
     const intersects = raycaster.intersectObject(chao);
-
     if (intersects.length > 0) {
       destino = intersects[0].point.clone();
     }
@@ -58,7 +50,6 @@ async function init() {
 
   function animarTudo() {
     requestAnimationFrame(animarTudo);
-
     if (principal && destino) {
       const dir = destino.clone().sub(principal.position);
       if (dir.length() > 0.1) {
@@ -66,7 +57,6 @@ async function init() {
         principal.position.add(dir.multiplyScalar(0.05));
       }
     }
-
     rendererInstance.render(scene, cameraInstance);
   }
 
