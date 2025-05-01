@@ -1,4 +1,4 @@
-rrequire('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
@@ -8,17 +8,20 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Sessão
 app.use(session({
   secret: process.env.JWT_SECRET || 'FoguinhosSecretos2025',
   resave: false,
   saveUninitialized: true,
 }));
 
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname)); // Serve arquivos da raiz (onde estão HTML, JS e CSS)
 
-const db = new sqlite3.Database('./foguinhos.db');
+// Banco de dados
+const db = new sqlite3.Database('./foquinhos.db');
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS foguinhos (
@@ -32,6 +35,7 @@ db.serialize(() => {
   `);
 });
 
+// Redireciona para dashboard se não logado
 app.get('/', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/dashboard.html');
@@ -39,8 +43,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-});
-
+// Login TikTok
 app.get('/auth/login', (req, res) => {
   const redirect_uri = encodeURIComponent(process.env.REDIRECT_URI);
   res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
@@ -79,6 +82,7 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
+// API - Usuário
 app.get('/api/user', (req, res) => {
   if (req.session.user) {
     res.json(req.session.user);
@@ -87,39 +91,41 @@ app.get('/api/user', (req, res) => {
   }
 });
 
+// API - Logout
+app.delete('/api/user', (req, res) => {
+  req.session.destroy(() => {
+    res.status(200).json({ message: 'Logout feito' });
+  });
+});
+
+// API - Adicionar Foguinho
 app.post('/api/foguinhos', (req, res) => {
   const { nome, dias, skin, dono_secundario } = req.body;
   const dono_principal = req.session.user?.name || 'desconhecido';
 
-  db.get(`
-    SELECT * FROM foguinhos
-    WHERE nome = ? AND dono_principal = ?
-  `, [nome, dono_principal], (err, row) => {
+  db.get(`SELECT * FROM foguinhos WHERE nome = ? AND dono_principal = ?`, [nome, dono_principal], (err, row) => {
     if (row) {
       return res.status(400).json({ message: 'Foguinho já registrado por este usuário.' });
     }
 
-    db.run(`
-      INSERT INTO foguinhos (nome, dias, skin, dono_principal, dono_secundario)
-      VALUES (?, ?, ?, ?, ?)
-    `, [nome, dias, skin, dono_principal, dono_secundario], function(err) {
-      if (err) {
-        return res.status(500).json({ message: 'Erro ao adicionar foguinho.' });
-      }
-      res.json({ id: this.lastID, nome, dias, skin });
-    });
+    db.run(`INSERT INTO foguinhos (nome, dias, skin, dono_principal, dono_secundario) VALUES (?, ?, ?, ?, ?)`,
+      [nome, dias, skin, dono_principal, dono_secundario],
+      function (err) {
+        if (err) return res.status(500).json({ message: 'Erro ao adicionar Foguinho.' });
+        res.json({ id: this.lastID, nome, dias, skin });
+      });
   });
 });
 
+// API - Listar Foguinhos
 app.get('/api/foguinhos', (req, res) => {
   db.all('SELECT * FROM foguinhos', [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erro ao buscar foguinhos.' });
-    }
+    if (err) return res.status(500).json({ message: 'Erro ao buscar foguinhos.' });
     res.json(rows);
   });
 });
 
+// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
