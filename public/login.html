@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Login com TikTok</title>
-  <link rel="stylesheet" href="estilo.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login TikTok - Foquinhos</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Bem-vindo!</h1>
-    <button onclick="loginTikTok()">Login com TikTok</button>
+  <div id="login-container">
+    <button id="login-btn">Entrar com TikTok</button>
   </div>
 
-  <script src="login.js"></script>
+  <script>
+    document.getElementById('login-btn').onclick = () => {
+      window.location.href = '/auth/login';
+    };
+  </script>
 </body>
 </html>
