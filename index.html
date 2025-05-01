@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta char<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Mundo dos Foguinhos</title>
@@ -11,6 +8,20 @@
 </head>
 <body>
   <canvas id="game-canvas"></canvas>
-  <script type="module" src="main.js" defer></script>
+
+  <script type="module">
+    // Antes de carregar o jogo, verifica se o usuário está logado
+    fetch('/api/user')
+      .then(res => {
+        if (res.ok) {
+          import('./main.js'); // só carrega o mundo se estiver logado
+        } else {
+          window.location.href = '/dashboard.html';
+        }
+      })
+      .catch(() => {
+        window.location.href = '/dashboard.html';
+      });
+  </script>
 </body>
 </html>
