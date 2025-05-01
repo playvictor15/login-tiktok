@@ -3,11 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Foguinhos no Mundo</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Login com TikTok - Foguinhos</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      padding: 50px;
+      background: linear-gradient(to right, #8360c3, #2ebf91);
+      color: white;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      background-color: white;
+      color: #2ebf91;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #f2f2f2;
+    }
+  </style>
 </head>
 <body>
-  <canvas id="game-canvas"></canvas>
-  <script type="module" src="main.js" defer></script>
+  <h1>🐧 Foguinhos do TikTok</h1>
+  <p>Entre com sua conta do TikTok para começar!</p>
+  <a href="/auth/login">
+    <button>Entrar com TikTok</button>
+  </a>
 </body>
 </html>
+
