@@ -138,8 +138,11 @@
           body: JSON.stringify(body)
         });
         if (res.ok) {
-  alert('Foguinho adicionado! Redirecionando para o mundo...');
-  window.location.href = '/';
+  alert('Foguinho adicionado!');
+  // Aguarda 1 segundo e redireciona para o mundo
+  setTimeout(() => {
+    window.location.href = '/';
+  }, 1000);
 } else {
           const msg = await res.json();
           alert('Erro: ' + msg.message);
