@@ -18,7 +18,7 @@ app.use(session({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname)); // Serve arquivos da raiz (onde estão HTML, JS e CSS)
+app.use(express.static(__dirname)); // Serve arquivos da raiz
 
 // Banco de dados
 const db = new sqlite3.Database('./foquinhos.db');
@@ -35,12 +35,17 @@ db.serialize(() => {
   `);
 });
 
-// Redireciona para dashboard se não logado
+// Rota principal: envia para o mundo ou dashboard
 app.get('/', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/dashboard.html');
   }
   res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Rota explícita para dashboard
+app.get('/dashboard.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
 // Login TikTok
@@ -49,6 +54,7 @@ app.get('/auth/login', (req, res) => {
   res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
 });
 
+// Callback do TikTok
 app.get('/auth/callback', async (req, res) => {
   const code = req.query.code;
   const redirect_uri = process.env.REDIRECT_URI;
@@ -82,7 +88,7 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-// API - Usuário
+// API: obter usuário logado
 app.get('/api/user', (req, res) => {
   if (req.session.user) {
     res.json(req.session.user);
@@ -91,14 +97,14 @@ app.get('/api/user', (req, res) => {
   }
 });
 
-// API - Logout
+// API: logout
 app.delete('/api/user', (req, res) => {
   req.session.destroy(() => {
     res.status(200).json({ message: 'Logout feito' });
   });
 });
 
-// API - Adicionar Foguinho
+// API: adicionar Foguinho
 app.post('/api/foguinhos', (req, res) => {
   const { nome, dias, skin, dono_secundario } = req.body;
   const dono_principal = req.session.user?.name || 'desconhecido';
@@ -108,16 +114,17 @@ app.post('/api/foguinhos', (req, res) => {
       return res.status(400).json({ message: 'Foguinho já registrado por este usuário.' });
     }
 
-    db.run(`INSERT INTO foguinhos (nome, dias, skin, dono_principal, dono_secundario) VALUES (?, ?, ?, ?, ?)`,
-      [nome, dias, skin, dono_principal, dono_secundario],
-      function (err) {
-        if (err) return res.status(500).json({ message: 'Erro ao adicionar Foguinho.' });
-        res.json({ id: this.lastID, nome, dias, skin });
-      });
+    db.run(`
+      INSERT INTO foguinhos (nome, dias, skin, dono_principal, dono_secundario)
+      VALUES (?, ?, ?, ?, ?)
+    `, [nome, dias, skin, dono_principal, dono_secundario], function (err) {
+      if (err) return res.status(500).json({ message: 'Erro ao adicionar Foguinho.' });
+      res.json({ id: this.lastID, nome, dias, skin });
+    });
   });
 });
 
-// API - Listar Foguinhos
+// API: listar todos
 app.get('/api/foguinhos', (req, res) => {
   db.all('SELECT * FROM foguinhos', [], (err, rows) => {
     if (err) return res.status(500).json({ message: 'Erro ao buscar foguinhos.' });
