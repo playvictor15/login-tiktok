@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.152.2';
-import { obterFoquinhosDoUsuario } from './login.js';
+import { obterFoguinhosDoUsuario } from './login.js';
 import { criarMundo3D } from './mundo.js';
 import { criarFoguinho } from './foguinhos.js';
 
@@ -13,7 +13,7 @@ async function init() {
     return;
   }
 
-  const foquinhosData = [
+  const foguinhosData = [
     { nome: 'Foguinho Azul', tipo: 'ativo' },
     { nome: 'Foguinho Gelo', tipo: 'congelado' },
     { nome: 'Foguinho Fantasma', tipo: 'apagado' }
