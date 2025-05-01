@@ -3,37 +3,56 @@ const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
 const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Sessão
 app.use(session({
-  secret: process.env.JWT_SECRET || 'segredo-do-foguinho',
+  secret: process.env.JWT_SECRET || 'FoguinhosSecretos2025',
   resave: false,
   saveUninitialized: true,
 }));
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Página inicial: redireciona para login
-app.get('/', (req, res) => {
-  res.redirect('/login.html');
+// Banco de dados SQLite
+const db = new sqlite3.Database('./foquinhos.db');
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS foquinhos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT,
+      dias INTEGER,
+      skin TEXT,
+      dono_principal TEXT,
+      dono_secundario TEXT
+    )
+  `);
 });
 
-// Inicia o login com TikTok
+// Página inicial
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+// Login com TikTok
 app.get('/auth/login', (req, res) => {
   const redirect_uri = encodeURIComponent(process.env.REDIRECT_URI);
   res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
 });
 
-// Callback do TikTok
+// Callback TikTok
 app.get('/auth/callback', async (req, res) => {
   const code = req.query.code;
   const redirect_uri = process.env.REDIRECT_URI;
 
   try {
-    const tokenRes = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', {
+    const response = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', {
       client_key: process.env.TIKTOK_CLIENT_KEY,
       client_secret: process.env.TIKTOK_CLIENT_SECRET,
       code,
@@ -41,7 +60,7 @@ app.get('/auth/callback', async (req, res) => {
       redirect_uri
     });
 
-    const access_token = tokenRes.data.access_token;
+    const access_token = response.data.access_token;
 
     const userData = await axios.get('https://open.tiktokapis.com/v2/user/info/', {
       headers: {
@@ -50,18 +69,18 @@ app.get('/auth/callback', async (req, res) => {
     });
 
     req.session.user = {
-      nome: userData.data.data.user.username,
+      name: userData.data.data.user.username,
       avatar: userData.data.data.user.avatar_url
     };
 
-    res.redirect('/index.html'); // Vai para o mundo dos Foquinhos
+    res.redirect('/dashboard.html');
   } catch (err) {
-    console.error('Erro no login:', err.response?.data || err.message);
-    res.send('Erro ao autenticar com o TikTok.');
+    console.error('Erro no login:', err.message);
+    res.send('Erro ao autenticar com o TikTok');
   }
 });
 
-// API para pegar usuário logado
+// API - Obter usuário logado
 app.get('/api/user', (req, res) => {
   if (req.session.user) {
     res.json(req.session.user);
@@ -70,6 +89,42 @@ app.get('/api/user', (req, res) => {
   }
 });
 
+// API - Adicionar Foquinho
+app.post('/api/foquinhos', (req, res) => {
+  const { nome, dias, skin, dono_secundario } = req.body;
+  const dono_principal = req.session.user?.name || 'desconhecido';
+
+  db.get(`
+    SELECT * FROM foguinhos
+    WHERE nome = ? AND dono_principal = ?
+  `, [nome, dono_principal], (err, row) => {
+    if (row) {
+      return res.status(400).json({ message: 'Foquinho já registrado por este usuário.' });
+    }
+
+    db.run(`
+      INSERT INTO foguinhos (nome, dias, skin, dono_principal, dono_secundario)
+      VALUES (?, ?, ?, ?, ?)
+    `, [nome, dias, skin, dono_principal, dono_secundario], function(err) {
+      if (err) {
+        return res.status(500).json({ message: 'Erro ao adicionar Foguinho.' });
+      }
+      res.json({ id: this.lastID, nome, dias, skin });
+    });
+  });
+});
+
+// API - Listar todos os Foquinhos
+app.get('/api/foguinhos', (req, res) => {
+  db.all('SELECT * FROM foquinhos', [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ message: 'Erro ao buscar foquinhos.' });
+    }
+    res.json(rows);
+  });
+});
+
+// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
