@@ -1,4 +1,4 @@
-/require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
@@ -8,31 +8,32 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(session({
-  secret: process.env.JWT_SECRET || 'secreto',
+  secret: process.env.JWT_SECRET || 'segredo-do-foguinho',
   resave: false,
   saveUninitialized: true,
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 
-// Rotas
+// Página inicial: redireciona para login
 app.get('/', (req, res) => {
   res.redirect('/login.html');
 });
 
+// Inicia o login com TikTok
 app.get('/auth/login', (req, res) => {
   const redirect_uri = encodeURIComponent(process.env.REDIRECT_URI);
   res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
 });
 
+// Callback do TikTok
 app.get('/auth/callback', async (req, res) => {
   const code = req.query.code;
   const redirect_uri = process.env.REDIRECT_URI;
 
   try {
-    const response = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', {
+    const tokenRes = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', {
       client_key: process.env.TIKTOK_CLIENT_KEY,
       client_secret: process.env.TIKTOK_CLIENT_SECRET,
       code,
@@ -40,7 +41,7 @@ app.get('/auth/callback', async (req, res) => {
       redirect_uri
     });
 
-    const access_token = response.data.access_token;
+    const access_token = tokenRes.data.access_token;
 
     const userData = await axios.get('https://open.tiktokapis.com/v2/user/info/', {
       headers: {
@@ -49,19 +50,26 @@ app.get('/auth/callback', async (req, res) => {
     });
 
     req.session.user = {
-      name: userData.data.data.user.username,
+      nome: userData.data.data.user.username,
       avatar: userData.data.data.user.avatar_url
     };
 
-    res.redirect('/index.html');
+    res.redirect('/index.html'); // Vai para o mundo dos Foquinhos
   } catch (err) {
-    console.error('Erro no login:', err.message);
-    res.send('Erro ao autenticar no TikTok.');
+    console.error('Erro no login:', err.response?.data || err.message);
+    res.send('Erro ao autenticar com o TikTok.');
   }
 });
 
-// Iniciar servidor
+// API para pegar usuário logado
+app.get('/api/user', (req, res) => {
+  if (req.session.user) {
+    res.json(req.session.user);
+  } else {
+    res.status(401).json({ message: 'Não logado' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
-/ Servidor atualizado para login TikTok + redirecionar para Mundo
