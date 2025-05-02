@@ -10,11 +10,10 @@
   <canvas id="game-canvas"></canvas>
 
   <script type="module">
-    // Antes de carregar o jogo, verifica se o usuário está logado
     fetch('/api/user')
       .then(res => {
         if (res.ok) {
-          import('./main.js'); // só carrega o mundo se estiver logado
+          import('./main.js');
         } else {
           window.location.href = '/dashboard.html';
         }
