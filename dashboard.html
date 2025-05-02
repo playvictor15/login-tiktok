@@ -99,11 +99,10 @@
           document.getElementById('username').textContent = user.name;
           document.getElementById('avatar').src = user.avatar;
         } else {
-          window.location.href = '/';
+          window.location.href = '/auth/login';
         }
       } catch (error) {
-        console.error('Erro ao carregar usuário:', error);
-        window.location.href = '/';
+        window.location.href = '/auth/login';
       }
     }
 
@@ -138,12 +137,11 @@
           body: JSON.stringify(body)
         });
         if (res.ok) {
-  alert('Foguinho adicionado!');
-  // Aguarda 1 segundo e redireciona para o mundo
-  setTimeout(() => {
-    window.location.href = '/';
-  }, 1000);
-} else {
+          alert('Foguinho adicionado!');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        } else {
           const msg = await res.json();
           alert('Erro: ' + msg.message);
         }
@@ -153,7 +151,6 @@
     });
 
     function logout() {
-      // Simplesmente limpa a sessão atual
       fetch('/api/user', { method: 'DELETE' }).then(() => {
         window.location.href = '/';
       }).catch(() => {
@@ -162,7 +159,7 @@
     }
 
     carregarUsuario();
-    carregarFoquinhos();
+    carregarFoguinhos();
   </script>
 
 </body>
