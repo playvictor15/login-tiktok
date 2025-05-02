@@ -18,24 +18,22 @@ app.use(session({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname)); // Serve arquivos da raiz
+app.use(express.static(__dirname)); // Serve arquivos estáticos da raiz
 
 // Banco de dados
 const db = new sqlite3.Database('./foquinhos.db');
 db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS foguinhos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nome TEXT,
-      dias INTEGER,
-      skin TEXT,
-      dono_principal TEXT,
-      dono_secundario TEXT
-    )
-  `);
+  db.run(`CREATE TABLE IF NOT EXISTS foguinhos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT,
+    dias INTEGER,
+    skin TEXT,
+    dono_principal TEXT,
+    dono_secundario TEXT
+  )`);
 });
 
-// Rota principal: envia para o mundo ou dashboard
+// Rota principal
 app.get('/', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/dashboard.html');
@@ -43,7 +41,6 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Rota explícita para dashboard
 app.get('/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
@@ -60,31 +57,32 @@ app.get('/auth/callback', async (req, res) => {
   const redirect_uri = process.env.REDIRECT_URI;
 
   try {
-    const response = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', {
+    const tokenRes = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', {
       client_key: process.env.TIKTOK_CLIENT_KEY,
       client_secret: process.env.TIKTOK_CLIENT_SECRET,
       code,
       grant_type: 'authorization_code',
-      redirect_uri
+      redirect_uri,
     });
 
-    const access_token = response.data.access_token;
+    const access_token = tokenRes.data.access_token;
 
-    const userData = await axios.get('https://open.tiktokapis.com/v2/user/info/', {
+    const userRes = await axios.get('https://open.tiktokapis.com/v2/user/info/', {
       headers: {
         Authorization: `Bearer ${access_token}`
       }
     });
 
+    const userData = userRes.data.data.user;
     req.session.user = {
-      name: userData.data.data.user.username,
-      avatar: userData.data.data.user.avatar_url
+      name: userData.username,
+      avatar: userData.avatar_url
     };
 
     res.redirect('/dashboard.html');
   } catch (err) {
-    console.error('Erro no login:', err.message);
-    res.send('Erro ao autenticar com o TikTok');
+    console.error('Erro ao autenticar com o TikTok:', err.response?.data || err.message);
+    res.send('Erro no login TikTok.');
   }
 });
 
@@ -132,7 +130,6 @@ app.get('/api/foguinhos', (req, res) => {
   });
 });
 
-// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
