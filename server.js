@@ -1,135 +1,117 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
-const axios = require('axios');
+const app = express();
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const bodyParser = require('body-parser');
+const session = require('express-session');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+app.use(express.static(__dirname));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-// Sessão
-app.use(session({
-  secret: process.env.JWT_SECRET || 'FoguinhosSecretos2025',
-  resave: false,
-  saveUninitialized: true,
-}));
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname)); // Serve arquivos estáticos da raiz
+app.use(
+  session({
+    secret: 'foguinho_secret_key',
+    resave: false,
+    saveUninitialized: true
+  })
+);
 
 // Banco de dados
-const db = new sqlite3.Database('./foquinhos.db');
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS foguinhos (
+const db = new sqlite3.Database('foguinho.db');
+
+// Cria tabela se não existir
+db.run(`
+  CREATE TABLE IF NOT EXISTS foguinho (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT,
-    dias INTEGER,
+    username TEXT,
+    photo TEXT,
+    foguinho_nome TEXT,
+    foguinho_dias INTEGER,
     skin TEXT,
-    dono_principal TEXT,
     dono_secundario TEXT
-  )`);
-});
+  )
+`);
 
 // Rota principal
 app.get('/', (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/dashboard.html');
-  }
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/dashboard.html', (req, res) => {
+// Rota dashboard
+app.get('/dashboard', (req, res) => {
+  if (!req.session.user) {
+    return res.redirect('/');
+  }
+
   res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
-// Login TikTok
-app.get('/auth/login', (req, res) => {
-  const redirect_uri = encodeURIComponent(process.env.REDIRECT_URI);
-  res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${process.env.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic&redirect_uri=${redirect_uri}&state=login`);
+// Salvar dados do usuário após login
+app.post('/save-user', (req, res) => {
+  const { username, photo } = req.body;
+  req.session.user = { username, photo };
+  res.json({ success: true });
 });
 
-// Callback do TikTok
-app.get('/auth/callback', async (req, res) => {
-  const code = req.query.code;
-  const redirect_uri = process.env.REDIRECT_URI;
+// Adicionar Foguinho
+app.post('/adicionar-foguinho', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ success: false });
 
-  try {
-    const tokenRes = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', {
-      client_key: process.env.TIKTOK_CLIENT_KEY,
-      client_secret: process.env.TIKTOK_CLIENT_SECRET,
-      code,
-      grant_type: 'authorization_code',
-      redirect_uri,
-    });
+  const { foguinho_nome, foguinho_dias, skin, dono_secundario } = req.body;
+  const { username, photo } = req.session.user;
 
-    const access_token = tokenRes.data.access_token;
+  db.get(
+    'SELECT * FROM foguinho WHERE username = ? AND foguinho_nome = ?',
+    [username, foguinho_nome],
+    (err, row) => {
+      if (err) return res.status(500).json({ success: false });
 
-    const userRes = await axios.get('https://open.tiktokapis.com/v2/user/info/', {
-      headers: {
-        Authorization: `Bearer ${access_token}`
+      if (row) {
+        return res.json({ success: false, message: 'Foguinho já existe!' });
       }
-    });
 
-    const userData = userRes.data.data.user;
-    req.session.user = {
-      name: userData.username,
-      avatar: userData.avatar_url
-    };
+      db.run(
+        'INSERT INTO foguinho (username, photo, foguinho_nome, foguinho_dias, skin, dono_secundario) VALUES (?, ?, ?, ?, ?, ?)',
+        [username, photo, foguinho_nome, foguinho_dias, skin, dono_secundario],
+        err => {
+          if (err) return res.status(500).json({ success: false });
 
-    res.redirect('/');
-  } catch (err) {
-    console.error('Erro ao autenticar com o TikTok:', err.response?.data || err.message);
-    res.send('Erro no login TikTok.');
-  }
+          res.json({ success: true });
+        }
+      );
+    }
+  );
 });
 
-// API: obter usuário logado
-app.get('/api/user', (req, res) => {
-  if (req.session.user) {
-    res.json(req.session.user);
-  } else {
-    res.status(401).json({ message: 'Não logado' });
-  }
-});
+// Verificar se o usuário tem Foguinho
+app.get('/tem-foguinho', (req, res) => {
+  if (!req.session.user) return res.json({ temFoguinho: false });
 
-// API: logout
-app.delete('/api/user', (req, res) => {
-  req.session.destroy(() => {
-    res.status(200).json({ message: 'Logout feito' });
-  });
-});
-
-// API: adicionar Foguinho
-app.post('/api/foguinhos', (req, res) => {
-  const { nome, dias, skin, dono_secundario } = req.body;
-  const dono_principal = req.session.user?.name || 'desconhecido';
-
-  db.get(`SELECT * FROM foguinhos WHERE nome = ? AND dono_principal = ?`, [nome, dono_principal], (err, row) => {
-    if (row) {
-      return res.status(400).json({ message: 'Foguinho já registrado por este usuário.' });
+  const { username } = req.session.user;
+  db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
+    if (err || !row) {
+      return res.json({ temFoguinho: false });
     }
 
-    db.run(`
-      INSERT INTO foguinhos (nome, dias, skin, dono_principal, dono_secundario)
-      VALUES (?, ?, ?, ?, ?)
-    `, [nome, dias, skin, dono_principal, dono_secundario], function (err) {
-      if (err) return res.status(500).json({ message: 'Erro ao adicionar Foguinho.' });
-      res.json({ id: this.lastID, nome, dias, skin });
-    });
+    res.json({ temFoguinho: true });
   });
 });
 
-// API: listar todos
-app.get('/api/foguinhos', (req, res) => {
-  db.all('SELECT * FROM foguinhos', [], (err, rows) => {
-    if (err) return res.status(500).json({ message: 'Erro ao buscar foguinhos.' });
-    res.json(rows);
+// Rota mundo 3D
+app.get('/mundo.html', (req, res) => {
+  if (!req.session.user) return res.redirect('/');
+  const { username } = req.session.user;
+
+  db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
+    if (err || !row) {
+      return res.redirect('/dashboard');
+    }
+
+    res.sendFile(path.join(__dirname, 'mundo.html'));
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
