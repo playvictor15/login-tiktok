@@ -79,7 +79,7 @@ app.get('/auth/callback', async (req, res) => {
       avatar: userData.avatar_url
     };
 
-    res.redirect('/dashboard.html');
+    res.redirect('/');
   } catch (err) {
     console.error('Erro ao autenticar com o TikTok:', err.response?.data || err.message);
     res.send('Erro no login TikTok.');
