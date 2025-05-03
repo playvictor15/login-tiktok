@@ -2,165 +2,61 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard - Foguinhos</title>
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(to right, #8360c3, #2ebf91);
-      min-height: 100vh;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-      color: white;
-    }
-    header {
-      padding: 20px;
-      background-color: rgba(0, 0, 0, 0.3);
-    }
-    #avatar {
-      border-radius: 50%;
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-    }
-    main {
-      margin-top: 30px;
-    }
-    form {
-      margin: 20px auto;
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 20px;
-      border-radius: 10px;
-      width: 300px;
-    }
-    input, button {
-      width: 90%;
-      margin: 10px 0;
-      padding: 10px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 5px;
-    }
-    input {
-      background: #fff;
-      color: #333;
-    }
-    button {
-      background-color: #2ebf91;
-      color: #fff;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #27ae80;
-    }
-    #foguinhosList {
-      list-style: none;
-      padding: 0;
-      margin-top: 20px;
-    }
-    #foguinhosList li {
-      background-color: rgba(255, 255, 255, 0.1);
-      margin: 5px auto;
-      padding: 10px;
-      width: 300px;
-      border-radius: 8px;
-    }
-  </style>
+  <title>Dashboard - Adicionar Foguinho</title>
 </head>
 <body>
+  <h2>Adicionar seu Foguinho</h2>
+  <form id="form-foguinho">
+    <input type="text" name="foguinho_nome" placeholder="Nome do Foguinho" required><br>
+    <input type="number" name="foguinho_dias" placeholder="Dias" required><br>
+    <input type="text" name="skin" placeholder="Skin atual" required><br>
+    <input type="text" name="dono_secundario" placeholder="Dono secundário (opcional)"><br>
+    <button type="submit">Salvar Foguinho</button>
+  </form>
 
-  <header>
-    <img id="avatar" src="" alt="Avatar do Usuário">
-    <h1>Bem-vindo(a), <span id="username">Usuário</span>!</h1>
-    <button onclick="logout()">Sair</button>
-  </header>
-
-  <main>
-    <h2>Adicionar um Foguinho 🔥</h2>
-    <form id="foguinhoForm">
-      <input type="text" id="nome" placeholder="Nome do Foguinho" required />
-      <input type="number" id="dias" placeholder="Dias de amizade" required />
-      <input type="text" id="skin" placeholder="Skin Atual" required />
-      <input type="text" id="dono2" placeholder="Nome do outro dono (TikTok)" required />
-      <button type="submit">Adicionar Foguinho</button>
-    </form>
-
-    <h2>Seus Foguinhos</h2>
-    <ul id="foguinhosList"></ul>
-  </main>
+  <button id="btn-entrar-jogo">Entrar no Mundo 3D</button>
 
   <script>
-    async function carregarUsuario() {
-      try {
-        const res = await fetch('/api/user');
-        if (res.status === 200) {
-          const user = await res.json();
-          document.getElementById('username').textContent = user.name;
-          document.getElementById('avatar').src = user.avatar;
+    // Verifica se usuário tem foguinho
+    fetch('/tem-foguinho')
+      .then(res => res.json())
+      .then(data => {
+        if (data.temFoguinho) {
+          document.getElementById('btn-entrar-jogo').style.display = 'block';
         } else {
-          window.location.href = '/auth/login';
+          document.getElementById('btn-entrar-jogo').style.display = 'none';
         }
-      } catch (error) {
-        window.location.href = '/auth/login';
-      }
-    }
+      });
 
-    async function carregarFoguinhos() {
-      try {
-        const res = await fetch('/api/foguinhos');
-        const lista = await res.json();
-        const ul = document.getElementById('foguinhosList');
-        ul.innerHTML = '';
-        lista.forEach(f => {
-          const li = document.createElement('li');
-          li.textContent = `${f.nome} (${f.dias} dias) - Skin: ${f.skin}`;
-          ul.appendChild(li);
-        });
-      } catch (error) {
-        console.error('Erro ao carregar foguinhos:', error);
-      }
-    }
-
-    document.getElementById('foguinhoForm').addEventListener('submit', async (e) => {
+    // Envia formulário
+    document.getElementById('form-foguinho').addEventListener('submit', function (e) {
       e.preventDefault();
-      const body = {
-        nome: document.getElementById('nome').value,
-        dias: document.getElementById('dias').value,
-        skin: document.getElementById('skin').value,
-        dono_secundario: document.getElementById('dono2').value
-      };
-      try {
-        const res = await fetch('/api/foguinhos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        if (res.ok) {
-          alert('Foguinho adicionado!');
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 1000);
+
+      const formData = new FormData(this);
+      const jsonData = {};
+      formData.forEach((value, key) => {
+        jsonData[key] = value;
+      });
+
+      fetch('/adicionar-foguinho', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(jsonData)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert('Foguinho salvo com sucesso!');
+          window.location.reload();
         } else {
-          const msg = await res.json();
-          alert('Erro: ' + msg.message);
+          alert(data.message || 'Erro ao salvar Foguinho.');
         }
-      } catch (error) {
-        console.error('Erro ao adicionar foguinho:', error);
-      }
+      });
     });
 
-    function logout() {
-      fetch('/api/user', { method: 'DELETE' }).then(() => {
-        window.location.href = '/';
-      }).catch(() => {
-        window.location.href = '/';
-      });
-    }
-
-    carregarUsuario();
-    carregarFoguinhos();
+    document.getElementById('btn-entrar-jogo').addEventListener('click', () => {
+      window.location.href = '/mundo.html';
+    });
   </script>
-
 </body>
 </html>
