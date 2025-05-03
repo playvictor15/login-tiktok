@@ -4,94 +4,67 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Adicionar Foguinho</title>
-  <style>
-    body {
-      background: linear-gradient(to right, #7f7fd5, #86a8e7, #91eae4);
-      font-family: 'Arial', sans-serif;
-      color: #fff;
-      text-align: center;
-      padding-top: 50px;
-    }
-
-    .form-container {
-      background-color: rgba(0, 0, 0, 0.5);
-      border-radius: 12px;
-      padding: 30px;
-      width: 90%;
-      max-width: 400px;
-      margin: auto;
-      animation: fadeIn 1s ease-in-out;
-    }
-
-    input, select, button {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-
-    button {
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background-color: #45a049;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+  <link rel="stylesheet" href="estilo.css" />
 </head>
-<body>
-  <div class="form-container">
-    <h1>Adicionar Foguinho</h1>
-    <form id="foguinhoForm">
-      <input type="text" id="nome" placeholder="Nome do Foguinho" required />
-      <input type="number" id="dias" placeholder="Dias" required />
-      <select id="skin" required>
-        <option value="">Selecione a skin</option>
+<body class="painel-body">
+  <div class="painel-container animar-entrada">
+    <h2 class="painel-titulo">Adicionar seu Foguinho</h2>
+
+    <form id="form-foguinho" class="painel-form">
+      <label for="nome">Nome do Foguinho:</label>
+      <input type="text" id="nome" name="nome" required />
+
+      <label for="dias">Dias de vida:</label>
+      <input type="number" id="dias" name="dias" required min="0" />
+
+      <label for="skin">Escolha a Skin (1, 2 ou 3):</label>
+      <select id="skin" name="skin" required>
+        <option value="">Selecione</option>
         <option value="1">Skin 1</option>
         <option value="2">Skin 2</option>
         <option value="3">Skin 3</option>
       </select>
-      <input type="text" id="donoSecundario" placeholder="Nome do dono secundário" required />
+
       <button type="submit">Salvar Foguinho</button>
     </form>
   </div>
 
   <script>
-    document.getElementById("foguinhoForm").addEventListener("submit", async (e) => {
+    document.getElementById('form-foguinho').addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const nome = document.getElementById("nome").value;
-      const dias = document.getElementById("dias").value;
-      const skin = document.getElementById("skin").value;
-      const donoSecundario = document.getElementById("donoSecundario").value;
+      const nome = document.getElementById('nome').value;
+      const dias = document.getElementById('dias').value;
+      const skin = document.getElementById('skin').value;
 
-      const response = await fetch("/adicionar-foguinho", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ nome, dias, skin, donoSecundario })
-      });
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert('Erro de autenticação. Faça login novamente.');
+        window.location.href = 'index.html';
+        return;
+      }
 
-      if (response.status === 401) {
-        alert("Erro de autenticação. Faça login novamente.");
-        window.location.href = "/index.html";
-      } else if (response.ok) {
-        alert("Foguinho adicionado com sucesso!");
-        window.location.href = "/dashboard.html";
-      } else {
-        const erro = await response.text();
-        alert("Erro ao adicionar Foguinho: " + erro);
+      try {
+        const response = await fetch('/foguinho', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ nome, dias, skin })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert('Foguinho adicionado com sucesso!');
+          window.location.href = 'dashboard.html';
+        } else {
+          alert(data.error || 'Erro ao adicionar Foguinho.');
+        }
+      } catch (err) {
+        alert('Erro ao conectar com o servidor.');
+        console.error(err);
       }
     });
   </script>
