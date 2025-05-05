@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const path = require('path');
@@ -34,84 +35,87 @@ db.run(`
   )
 `);
 
-// Rota principal
+// Página inicial
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Rota dashboard
+// Dashboard
 app.get('/dashboard', (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/');
-  }
-
+  if (!req.session.user) return res.redirect('/');
   res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
-// Salvar dados do usuário após login
+// Salva o login do usuário
 app.post('/save-user', (req, res) => {
   const { username, photo } = req.body;
   req.session.user = { username, photo };
   res.json({ success: true });
 });
 
-// Adicionar Foguinho
+// Adiciona um foguinho
 app.post('/adicionar-foguinho', (req, res) => {
   if (!req.session.user) return res.status(401).json({ success: false });
 
-  const { foguinho_nome, foguinho_dias, skin, dono_secundario } = req.body;
   const { username, photo } = req.session.user;
+  const { foguinho_nome, foguinho_dias, skin, dono_secundario } = req.body;
 
   db.get(
     'SELECT * FROM foguinho WHERE username = ? AND foguinho_nome = ?',
     [username, foguinho_nome],
     (err, row) => {
-      if (err) return res.status(500).json({ success: false });
+      if (err) return res.status(500).json({ success: false, error: err.message });
 
       if (row) {
         return res.json({ success: false, message: 'Foguinho já existe!' });
       }
 
       db.run(
-        'INSERT INTO foguinho (username, photo, foguinho_nome, foguinho_dias, skin, dono_secundario) VALUES (?, ?, ?, ?, ?, ?)',
+        `INSERT INTO foguinho 
+          (username, photo, foguinho_nome, foguinho_dias, skin, dono_secundario) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [username, photo, foguinho_nome, foguinho_dias, skin, dono_secundario],
-        err => {
-          if (err) return res.status(500).json({ success: false });
-
-          res.json({ success: true });
+        function (err) {
+          if (err) return res.status(500).json({ success: false, error: err.message });
+          return res.json({ success: true });
         }
       );
     }
   );
 });
 
-// Verificar se o usuário tem Foguinho
+// Verifica se tem foguinho
 app.get('/tem-foguinho', (req, res) => {
   if (!req.session.user) return res.json({ temFoguinho: false });
 
   const { username } = req.session.user;
-  db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
-    if (err || !row) {
-      return res.json({ temFoguinho: false });
+  db.get(
+    'SELECT * FROM foguinho WHERE username = ?',
+    [username],
+    (err, row) => {
+      if (err) return res.json({ temFoguinho: false });
+      res.json({ temFoguinho: !!row });
     }
-
-    res.json({ temFoguinho: true });
-  });
+  );
 });
 
-// Rota mundo 3D
+// Mundo 3D (apenas se tiver foguinho)
 app.get('/mundo.html', (req, res) => {
   if (!req.session.user) return res.redirect('/');
+
   const { username } = req.session.user;
 
   db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
     if (err || !row) {
-      return res.redirect('/dashboard');
+      return res.redirect('/dashboard'); // Redireciona para criar se não tiver foguinho
     }
 
     res.sendFile(path.join(__dirname, 'mundo.html'));
   });
 });
 
+// Iniciar servidor
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
