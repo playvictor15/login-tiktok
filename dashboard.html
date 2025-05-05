@@ -97,6 +97,7 @@
         const resposta = await fetch('/adicionar-foguinho', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // ← Correção do erro 401
           body: JSON.stringify(dados)
         });
 
