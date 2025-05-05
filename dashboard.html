@@ -5,120 +5,123 @@
   <title>Criar Foguinho</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(135deg, #ffcc70, #ff6f61);
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #6a11cb, #2575fc);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       height: 100vh;
       margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
 
-    .painel {
-      background-color: white;
-      padding: 40px;
+    h1 {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    form {
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 20px;
       border-radius: 10px;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-      animation: fadeIn 1s ease forwards;
-      opacity: 0;
-      transform: scale(0.95);
-      width: 350px;
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 300px;
+      animation: fadeIn 1s ease-in-out;
     }
 
     @keyframes fadeIn {
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    input, select {
-      width: 90%;
+    input, select, button {
       padding: 10px;
-      margin: 10px 0;
-      border: 2px solid #ccc;
+      border: none;
       border-radius: 5px;
       font-size: 16px;
     }
 
     button {
-      background-color: #ff6f61;
+      background-color: #4CAF50;
       color: white;
-      border: none;
-      padding: 12px 25px;
-      border-radius: 5px;
       cursor: pointer;
-      font-size: 16px;
-      transition: background 0.3s ease;
     }
 
-    button:hover {
-      background-color: #ff3b2e;
-    }
-
-    .mensagem {
-      margin-top: 15px;
+    #mensagem {
+      margin-top: 10px;
       font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div class="painel">
-    <h2>Adicionar Foguinho</h2>
-    <form id="form-foguinho">
-      <input type="text" name="foguinho_nome" placeholder="Nome do Foguinho" required />
-      <input type="number" name="foguinho_dias" placeholder="Dias com você" required />
-      <select name="skin" required>
-        <option value="">Escolha uma skin</option>
-        <option value="1">Skin 1 (amarelo)</option>
-        <option value="2">Skin 2 (vermelho)</option>
-        <option value="3">Skin 3 (roxo)</option>
-      </select>
-      <input type="text" name="dono_secundario" placeholder="Nome do dono secundário (opcional)" />
-      <button type="submit">Criar Foguinho</button>
-    </form>
-    <div class="mensagem" id="mensagem"></div>
-  </div>
+  <h1>Criar seu Foguinho</h1>
+  <form id="foguinhoForm">
+    <input type="text" id="nome" placeholder="Nome do Foguinho" required />
+    <input type="number" id="dias" placeholder="Dias de vida" required />
+    <input type="text" id="dono_secundario" placeholder="Dono Secundário (opcional)" />
+    <select id="skin">
+      <option value="1">Skin 1 (Amarelo)</option>
+      <option value="2">Skin 2 (Vermelho)</option>
+      <option value="3">Skin 3 (Roxo)</option>
+    </select>
+    <button type="submit">Adicionar Foguinho</button>
+    <div id="mensagem"></div>
+  </form>
 
   <script>
-    document.getElementById('form-foguinho').addEventListener('submit', async function (e) {
+    document.getElementById('foguinhoForm').addEventListener('submit', async function (e) {
       e.preventDefault();
 
-      const form = e.target;
-      const dados = {
-        foguinho_nome: form.foguinho_nome.value,
-        foguinho_dias: form.foguinho_dias.value,
-        skin: form.skin.value,
-        dono_secundario: form.dono_secundario.value
-      };
+      const nome = document.getElementById('nome').value;
+      const dias = document.getElementById('dias').value;
+      const dono_secundario = document.getElementById('dono_secundario').value;
+      const skin = document.getElementById('skin').value;
+
+      const dados = { nome, dias, dono_secundario, skin };
+      const msg = document.getElementById('mensagem');
 
       try {
         const resposta = await fetch('/adicionar-foguinho', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include', // ← Correção do erro 401
+          credentials: 'include',
           body: JSON.stringify(dados)
         });
 
+        if (!resposta.ok) {
+          if (resposta.status === 401) {
+            window.location.href = '/';
+            return;
+          } else {
+            throw new Error(`Erro no servidor (${resposta.status})`);
+          }
+        }
+
         const resultado = await resposta.json();
-        const msg = document.getElementById('mensagem');
 
         if (resultado.success) {
-          msg.style.color = 'green';
+          msg.style.color = 'lightgreen';
           msg.textContent = 'Foguinho criado com sucesso! Redirecionando...';
-
           setTimeout(() => {
-           window.location.href = '/dashboard';
+            window.location.href = '/mundo.html';
           }, 1500);
         } else {
-          msg.style.color = 'red';
+          msg.style.color = 'yellow';
           msg.textContent = resultado.message || 'Erro ao criar Foguinho.';
         }
 
       } catch (erro) {
         console.error('Erro:', erro);
-        document.getElementById('mensagem').textContent = 'Erro inesperado ao criar o Foguinho.';
+        msg.style.color = 'red';
+        msg.textContent = 'Erro inesperado ao criar o Foguinho.';
       }
     });
   </script>
