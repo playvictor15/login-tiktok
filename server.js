@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('dotenv').config();
 const express = require('express');
 const app = express();
 const path = require('path');
@@ -55,16 +54,23 @@ app.post('/save-user', (req, res) => {
 
 // Adiciona um foguinho
 app.post('/adicionar-foguinho', (req, res) => {
-  if (!req.session.user) return res.status(401).json({ success: false });
+  if (!req.session.user) return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
 
   const { username, photo } = req.session.user;
   const { foguinho_nome, foguinho_dias, skin, dono_secundario } = req.body;
+
+  if (!foguinho_nome || !foguinho_dias || !skin) {
+    return res.status(400).json({ success: false, message: 'Preencha todos os campos obrigatórios.' });
+  }
 
   db.get(
     'SELECT * FROM foguinho WHERE username = ? AND foguinho_nome = ?',
     [username, foguinho_nome],
     (err, row) => {
-      if (err) return res.status(500).json({ success: false, error: err.message });
+      if (err) {
+        console.error('Erro ao verificar foguinho existente:', err);
+        return res.status(500).json({ success: false, error: err.message });
+      }
 
       if (row) {
         return res.json({ success: false, message: 'Foguinho já existe!' });
@@ -76,7 +82,10 @@ app.post('/adicionar-foguinho', (req, res) => {
          VALUES (?, ?, ?, ?, ?, ?)`,
         [username, photo, foguinho_nome, foguinho_dias, skin, dono_secundario],
         function (err) {
-          if (err) return res.status(500).json({ success: false, error: err.message });
+          if (err) {
+            console.error('Erro ao inserir foguinho:', err);
+            return res.status(500).json({ success: false, error: err.message });
+          }
           return res.json({ success: true });
         }
       );
@@ -107,7 +116,7 @@ app.get('/mundo.html', (req, res) => {
 
   db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
     if (err || !row) {
-      return res.redirect('/dashboard'); // Redireciona para criar se não tiver foguinho
+      return res.redirect('/dashboard');
     }
 
     res.sendFile(path.join(__dirname, 'mundo.html'));
