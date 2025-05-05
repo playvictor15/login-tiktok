@@ -1,110 +1,115 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Criar seu Foguinho</title>
-  <style>
-    body {
-      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-      font-family: 'Comic Sans MS', cursive, sans-serif;
-      color: white;
-      text-align: center;
-      padding: 20px;
-      overflow: hidden;
-    }
-    .foguinho {
-      animation: flutuar 3s ease-in-out infinite;
-      font-size: 80px;
-      margin-top: 30px;
-    }
-    @keyframes flutuar {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-20px); }
-      100% { transform: translateY(0px); }
-    }
-    form {
-      margin-top: 40px;
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 30px;
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-    }
-    label {
-      display: block;
-      margin: 10px 0 5px;
-    }
-    input, select {
-      padding: 10px;
-      width: 100%;
-      max-width: 300px;
-      border: none;
-      border-radius: 8px;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 20px;
-      background-color: #00c6ff;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover {
-      background-color: #0072ff;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Adicionar Foguinho</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #1a1a1a;
+            color: white;
+        }
+
+        #painel {
+            margin-top: 50px;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        input, select, button {
+            padding: 10px;
+            margin: 10px;
+            border-radius: 8px;
+            border: none;
+        }
+
+        button {
+            background-color: #ff6f00;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #ff8f00;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
-  <h1>Adicionar seu Foguinho</h1>
-  <div class="foguinho">🔥</div>
+    <div id="painel">
+        <h1>Bem-vindo, <span id="nomeUsuario">usuário</span>!</h1>
+        <p>Crie seu Foguinho:</p>
 
-  <form id="foguinhoForm">
-    <label for="nome">Nome do Foguinho:</label>
-    <input type="text" id="nome" name="nome" required />
+        <form id="formFoguinho">
+            <input type="text" id="nome" placeholder="Nome do Foguinho" required><br>
+            <input type="number" id="dias" placeholder="Dias de vida" min="0" required><br>
+            <select id="skin" required>
+                <option value="" disabled selected>Escolha a skin</option>
+                <option value="1">Skin 1 (amarelo)</option>
+                <option value="2">Skin 2 (vermelho)</option>
+                <option value="3">Skin 3 (roxo)</option>
+            </select><br>
+            <input type="text" id="donoSecundario" placeholder="Dono secundário (opcional)"><br>
+            <button type="submit">Adicionar Foguinho</button>
+        </form>
+    </div>
 
-    <label for="dias">Dias:</label>
-    <input type="number" id="dias" name="dias" required />
+    <script>
+        async function getUserData() {
+            const res = await fetch('/user-data', { credentials: 'include' });
+            if (!res.ok) return null;
+            return await res.json();
+        }
 
-    <label for="skin">Skin (1, 2 ou 3):</label>
-    <select id="skin" name="skin" required>
-      <option value="">Selecione</option>
-      <option value="1">Skin 1</option>
-      <option value="2">Skin 2</option>
-      <option value="3">Skin 3</option>
-    </select>
+        async function saveUser(user) {
+            const res = await fetch('/save-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(user)
+            });
+            return res.ok;
+        }
 
-    <label for="donoSecundario">Dono Secundário (opcional):</label>
-    <input type="text" id="donoSecundario" name="donoSecundario" />
+        document.addEventListener("DOMContentLoaded", async () => {
+            const user = await getUserData();
+            if (!user || !user.username) {
+                window.location.href = '/';
+                return;
+            }
 
-    <button type="submit">Salvar Foguinho</button>
-  </form>
+            document.getElementById('nomeUsuario').textContent = user.username;
 
-  <script>
-    document.getElementById('foguinhoForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+            await saveUser(user); // Salva ou atualiza o usuário na base
+        });
 
-      const nome = document.getElementById('nome').value;
-      const dias = document.getElementById('dias').value;
-      const skin = document.getElementById('skin').value;
-      const donoSecundario = document.getElementById('donoSecundario').value;
+        document.getElementById("formFoguinho").addEventListener("submit", async (e) => {
+            e.preventDefault();
 
-      const response = await fetch('/adicionar-foguinho', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ nome, dias, skin, donoSecundario })
-      });
+            const nome = document.getElementById("nome").value;
+            const dias = document.getElementById("dias").value;
+            const skin = document.getElementById("skin").value;
+            const donoSecundario = document.getElementById("donoSecundario").value;
 
-      if (response.ok) {
-        window.location.href = '/dashboard.html';
-      } else {
-        alert('Erro ao adicionar Foguinho: ' + (await response.text()));
-      }
-    });
-  </script>
+            const res = await fetch('/adicionar-foguinho', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ nome, dias, skin, donoSecundario })
+            });
+
+            const result = await res.json();
+
+            if (res.ok && result.success) {
+                window.location.href = '/dashboard.html';
+            } else {
+                alert(result.message || 'Erro ao adicionar Foguinho.');
+            }
+        });
+    </script>
 </body>
 </html>
