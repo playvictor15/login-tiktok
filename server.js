@@ -1,129 +1,119 @@
 require('dotenv').config();
 const express = require('express');
-const app = express();
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
-const bodyParser = require('body-parser');
 const session = require('express-session');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
+
+const app = express();
+const db = new sqlite3.Database('./foguinho.db');
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+app.use(session({
+  secret: 'segredo',
+  resave: false,
+  saveUninitialized: true
+}));
 
 app.use(express.static(__dirname));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
 
-app.use(
-  session({
-    secret: 'foguinho_secret_key',
-    resave: false,
-    saveUninitialized: true
-  })
-);
-
-// Banco de dados
-const db = new sqlite3.Database('foguinho.db');
-
-// Cria tabela se não existir
-db.run(`
-  CREATE TABLE IF NOT EXISTS foguinho (
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT,
-    photo TEXT,
-    foguinho_nome TEXT,
-    foguinho_dias INTEGER,
-    skin TEXT,
-    dono_secundario TEXT
-  )
-`);
+    username TEXT NOT NULL,
+    avatar TEXT
+  )`);
 
-// Página inicial
+  db.run(`CREATE TABLE IF NOT EXISTS foguinho (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    dias INTEGER NOT NULL,
+    skin TEXT NOT NULL,
+    donoSecundario TEXT
+  )`);
+});
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Dashboard
-app.get('/dashboard', (req, res) => {
-  if (!req.session.user) return res.redirect('/');
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
+app.post('/login', (req, res) => {
+  const { username, avatar } = req.body;
 
-// Salva o login do usuário
-app.post('/save-user', (req, res) => {
-  const { username, photo } = req.body;
-  req.session.user = { username, photo };
-  res.json({ success: true });
-});
+  db.get('SELECT * FROM users WHERE username = ?', [username], (err, row) => {
+    if (err) return res.status(500).send('Erro ao verificar usuário.');
 
-// Adiciona um foguinho
-app.post('/adicionar-foguinho', (req, res) => {
-  if (!req.session.user) return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
-
-  const { username, photo } = req.session.user;
-  const { foguinho_nome, foguinho_dias, skin, dono_secundario } = req.body;
-
-  if (!foguinho_nome || !foguinho_dias || !skin) {
-    return res.status(400).json({ success: false, message: 'Preencha todos os campos obrigatórios.' });
-  }
-
-  db.get(
-    'SELECT * FROM foguinho WHERE username = ? AND foguinho_nome = ?',
-    [username, foguinho_nome],
-    (err, row) => {
-      if (err) {
-        console.error('Erro ao verificar foguinho existente:', err);
-        return res.status(500).json({ success: false, error: err.message });
-      }
-
-      if (row) {
-        return res.json({ success: false, message: 'Foguinho já existe!' });
-      }
-
-      db.run(
-        `INSERT INTO foguinho 
-          (username, photo, foguinho_nome, foguinho_dias, skin, dono_secundario) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [username, photo, foguinho_nome, foguinho_dias, skin, dono_secundario],
-        function (err) {
-          if (err) {
-            console.error('Erro ao inserir foguinho:', err);
-            return res.status(500).json({ success: false, error: err.message });
-          }
-          return res.json({ success: true });
-        }
-      );
+    if (!row) {
+      db.run('INSERT INTO users (username, avatar) VALUES (?, ?)', [username, avatar], function (err) {
+        if (err) return res.status(500).send('Erro ao inserir usuário.');
+      });
     }
-  );
+
+    req.session.user = { username, avatar };
+
+    db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, foguinho) => {
+      if (err) return res.status(500).send('Erro ao verificar foguinho.');
+
+      if (foguinho) {
+        res.redirect('/dashboard');
+      } else {
+        res.redirect('/painel.html');
+      }
+    });
+  });
 });
 
-// Verifica se tem foguinho
-app.get('/tem-foguinho', (req, res) => {
-  if (!req.session.user) return res.json({ temFoguinho: false });
-
-  const { username } = req.session.user;
-  db.get(
-    'SELECT * FROM foguinho WHERE username = ?',
-    [username],
-    (err, row) => {
-      if (err) return res.json({ temFoguinho: false });
-      res.json({ temFoguinho: !!row });
-    }
-  );
-});
-
-// Mundo 3D (apenas se tiver foguinho)
-app.get('/mundo.html', (req, res) => {
+// Rota para painel.html, se ainda não tiver Foguinho
+app.get('/painel.html', (req, res) => {
   if (!req.session.user) return res.redirect('/');
 
   const { username } = req.session.user;
 
   db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
-    if (err || !row) {
-      return res.redirect('/dashboard');
-    }
+    if (err) return res.redirect('/dashboard');
+    if (row) return res.redirect('/dashboard');
+    
+    res.sendFile(path.join(__dirname, 'painel.html'));
+  });
+});
+
+app.post('/criar-foguinho', (req, res) => {
+  if (!req.session.user) return res.redirect('/');
+
+  const { username } = req.session.user;
+  const { nome, dias, skin, donoSecundario } = req.body;
+
+  db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
+    if (row) return res.redirect('/dashboard');
+
+    db.run('INSERT INTO foguinho (username, nome, dias, skin, donoSecundario) VALUES (?, ?, ?, ?, ?)',
+      [username, nome, dias, skin, donoSecundario], function (err) {
+        if (err) return res.status(500).send('Erro ao salvar foguinho.');
+        res.redirect('/dashboard');
+      });
+  });
+});
+
+app.get('/dashboard', (req, res) => {
+  if (!req.session.user) return res.redirect('/');
+
+  const { username } = req.session.user;
+
+  db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, foguinho) => {
+    if (err || !foguinho) return res.redirect('/painel.html');
 
     res.sendFile(path.join(__dirname, 'mundo.html'));
   });
 });
 
-// Iniciar servidor
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/');
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
