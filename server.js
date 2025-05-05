@@ -113,6 +113,32 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
   });
 });
+app.post('/adicionar-foguinho', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Não autenticado' });
+  }
+
+  const { nome, dias, skin, donoSecundario } = req.body;
+  const username = req.session.user.username;
+
+  db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
+    if (row) {
+      return res.status(400).json({ success: false, message: 'Foguinho já existe.' });
+    }
+
+    db.run('INSERT INTO foguinho (username, nome, dias, skin, donoSecundario) VALUES (?, ?, ?, ?, ?)',
+      [username, nome, dias, skin, donoSecundario],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ success: false, message: 'Erro ao salvar foguinho.' });
+        }
+
+        res.json({ success: true });
+      });
+  });
+});
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
