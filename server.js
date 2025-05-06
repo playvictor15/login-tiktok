@@ -1,5 +1,4 @@
 require('dotenv').config();
-require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const sqlite3 = require('sqlite3').verbose();
@@ -66,7 +65,6 @@ app.post('/login', (req, res) => {
   });
 });
 
-// Rota para painel.html, se ainda não tiver Foguinho
 app.get('/painel.html', (req, res) => {
   if (!req.session.user) return res.redirect('/');
 
@@ -75,25 +73,25 @@ app.get('/painel.html', (req, res) => {
   db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
     if (err) return res.redirect('/dashboard');
     if (row) return res.redirect('/dashboard');
-    
+
     res.sendFile(path.join(__dirname, 'painel.html'));
   });
 });
 
-// 🔧 ROTA CORRIGIDA AQUI
+// ✅ CORRIGIDO: retorna JSON em vez de HTML
 app.post('/adicionar-foguinho', (req, res) => {
-  if (!req.session.user) return res.redirect('/');
+  if (!req.session.user) return res.status(401).json({ success: false });
 
   const { username } = req.session.user;
   const { nome, dias, skin, donoSecundario } = req.body;
 
   db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
-    if (row) return res.redirect('/dashboard');
+    if (row) return res.json({ success: false, message: 'Foguinho já existe!' });
 
     db.run('INSERT INTO foguinho (username, nome, dias, skin, donoSecundario) VALUES (?, ?, ?, ?, ?)',
       [username, nome, dias, skin, donoSecundario], function (err) {
-        if (err) return res.status(500).send('Erro ao salvar foguinho.');
-        res.redirect('/dashboard');
+        if (err) return res.status(500).json({ success: false, message: 'Erro ao salvar foguinho.' });
+        res.json({ success: true, redirect: '/dashboard' }); // ✅ Resposta JSON esperada
       });
   });
 });
