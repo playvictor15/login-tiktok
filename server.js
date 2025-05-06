@@ -18,6 +18,7 @@ app.use(session({
 
 app.use(express.static(__dirname));
 
+// Criação das tabelas no banco
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,10 +36,12 @@ db.serialize(() => {
   )`);
 });
 
+// Página inicial
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Login
 app.post('/login', (req, res) => {
   const { username, avatar } = req.body;
 
@@ -65,7 +68,7 @@ app.post('/login', (req, res) => {
   });
 });
 
-// Rota para painel.html, se ainda não tiver Foguinho
+// Página de criação do Foguinho
 app.get('/painel.html', (req, res) => {
   if (!req.session.user) return res.redirect('/');
 
@@ -79,23 +82,34 @@ app.get('/painel.html', (req, res) => {
   });
 });
 
-app.post('/criar-foguinho', (req, res) => {
-  if (!req.session.user) return res.redirect('/');
+// Rota para salvar Foguinho via fetch (painel.html)
+app.post('/adicionar-foguinho', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Não autenticado' });
+  }
 
-  const { username } = req.session.user;
-  const { nome, dias, skin, donoSecundario } = req.body;
+  const { nome, dias, skin, dono_secundario } = req.body;
+  const username = req.session.user.username;
 
   db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
-    if (row) return res.redirect('/dashboard');
+    if (row) {
+      return res.status(400).json({ success: false, message: 'Foguinho já existe.' });
+    }
 
     db.run('INSERT INTO foguinho (username, nome, dias, skin, donoSecundario) VALUES (?, ?, ?, ?, ?)',
-      [username, nome, dias, skin, donoSecundario], function (err) {
-        if (err) return res.status(500).send('Erro ao salvar foguinho.');
-        res.redirect('/dashboard');
+      [username, nome, dias, skin, dono_secundario || null],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ success: false, message: 'Erro ao salvar foguinho.' });
+        }
+
+        res.json({ success: true });
       });
   });
 });
 
+// Rota de redirecionamento para o mundo
 app.get('/dashboard', (req, res) => {
   if (!req.session.user) return res.redirect('/');
 
@@ -108,38 +122,14 @@ app.get('/dashboard', (req, res) => {
   });
 });
 
+// Logout
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');
   });
 });
-app.post('/adicionar-foguinho', (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ success: false, message: 'Não autenticado' });
-  }
 
-  const { nome, dias, skin, donoSecundario } = req.body;
-  const username = req.session.user.username;
-
-  db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
-    if (row) {
-      return res.status(400).json({ success: false, message: 'Foguinho já existe.' });
-    }
-
-    db.run('INSERT INTO foguinho (username, nome, dias, skin, donoSecundario) VALUES (?, ?, ?, ?, ?)',
-      [username, nome, dias, skin, donoSecundario],
-      function (err) {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({ success: false, message: 'Erro ao salvar foguinho.' });
-        }
-
-        res.json({ success: true });
-      });
-  });
-});
-
-
+// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
