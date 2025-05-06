@@ -85,7 +85,7 @@
       const dono_secundario = document.getElementById('dono_secundario').value;
       const skin = document.getElementById('skin').value;
 
-      const dados = { nome, dias, dono_secundario, skin };
+      const dados = { nome, dias, donoSecundario: dono_secundario, skin };
       const msg = document.getElementById('mensagem');
 
       try {
@@ -96,22 +96,13 @@
           body: JSON.stringify(dados)
         });
 
-        if (!resposta.ok) {
-          if (resposta.status === 401) {
-            window.location.href = '/';
-            return;
-          } else {
-            throw new Error(`Erro no servidor (${resposta.status})`);
-          }
-        }
-
         const resultado = await resposta.json();
 
         if (resultado.success) {
           msg.style.color = 'lightgreen';
           msg.textContent = 'Foguinho criado com sucesso! Redirecionando...';
           setTimeout(() => {
-            window.location.href = '/mundo.html';
+            window.location.href = resultado.redirect || '/dashboard';
           }, 1500);
         } else {
           msg.style.color = 'yellow';
