@@ -78,20 +78,19 @@ app.get('/painel.html', (req, res) => {
   });
 });
 
-// ✅ CORRIGIDO: retorna JSON em vez de HTML
 app.post('/adicionar-foguinho', (req, res) => {
-  if (!req.session.user) return res.status(401).json({ success: false });
+  if (!req.session.user) return res.redirect('/');
 
   const { username } = req.session.user;
   const { nome, dias, skin, donoSecundario } = req.body;
 
   db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
-    if (row) return res.json({ success: false, message: 'Foguinho já existe!' });
+    if (row) return res.redirect('/dashboard');
 
     db.run('INSERT INTO foguinho (username, nome, dias, skin, donoSecundario) VALUES (?, ?, ?, ?, ?)',
       [username, nome, dias, skin, donoSecundario], function (err) {
-        if (err) return res.status(500).json({ success: false, message: 'Erro ao salvar foguinho.' });
-        res.json({ success: true, redirect: '/dashboard' }); // ✅ Resposta JSON esperada
+        if (err) return res.status(500).send('Erro ao salvar foguinho.');
+        res.redirect('/dashboard');
       });
   });
 });
@@ -111,6 +110,17 @@ app.get('/dashboard', (req, res) => {
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');
+  });
+});
+
+// ✅ NOVA ROTA PARA MUNDO.JS CARREGAR OS FOGUINHOS
+app.get('/api/foguinhos', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Não autenticado' });
+
+  const { username } = req.session.user;
+  db.all('SELECT * FROM foguinho WHERE username = ?', [username], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Erro ao buscar foguinhos' });
+    res.json(rows);
   });
 });
 
