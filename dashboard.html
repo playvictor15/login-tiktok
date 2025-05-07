@@ -96,7 +96,13 @@
           body: JSON.stringify(dados)
         });
 
-        const resultado = await resposta.json();
+      const texto = await resposta.text();
+let resultado;
+try {
+  resultado = JSON.parse(texto);
+} catch {
+  throw new Error('Resposta não é JSON: ' + texto);
+}
 
         if (resultado.success) {
           msg.style.color = 'lightgreen';
