@@ -78,22 +78,32 @@ app.get('/painel.html', (req, res) => {
   });
 });
 
-// ✅ ROTA CORRIGIDA AQUI
+// ✅ ROTA corrigida para retornar JSON válido sempre
 app.post('/adicionar-foguinho', (req, res) => {
-  if (!req.session.user) return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Usuário não autenticado.' });
+  }
 
   const { username } = req.session.user;
   const { nome, dias, skin, donoSecundario } = req.body;
 
   db.get('SELECT * FROM foguinho WHERE username = ?', [username], (err, row) => {
-    if (err) return res.status(500).json({ success: false, message: 'Erro ao verificar banco de dados.' });
-    if (row) return res.json({ success: false, message: 'Foguinho já existe!' });
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Erro ao verificar banco de dados.' });
+    }
+    if (row) {
+      return res.json({ success: false, message: 'Foguinho já existe!' });
+    }
 
-    db.run('INSERT INTO foguinho (username, nome, dias, skin, donoSecundario) VALUES (?, ?, ?, ?, ?)',
+    db.run(
+      'INSERT INTO foguinho (username, nome, dias, skin, donoSecundario) VALUES (?, ?, ?, ?, ?)',
       [username, nome, dias, skin, donoSecundario],
       function (err) {
-        if (err) return res.status(500).json({ success: false, message: 'Erro ao salvar foguinho.' });
-        res.json({ success: true });
+        if (err) {
+          return res.status(500).json({ success: false, message: 'Erro ao salvar foguinho.' });
+        }
+        // ✅ Resposta final corrigida
+        res.json({ success: true, redirect: '/dashboard' });
       }
     );
   });
