@@ -1,127 +1,27 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Criar Foguinho</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mundo dos Foguinhos</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to right, #6a11cb, #2575fc);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
       margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
     }
-
-    h1 {
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-
-    form {
-      background-color: rgba(0, 0, 0, 0.3);
-      padding: 20px;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 300px;
-      animation: fadeIn 1s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    input, select, button {
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-    }
-
-    button {
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-    }
-
-    #mensagem {
-      margin-top: 10px;
-      font-weight: bold;
+    .label {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #000;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
-  <h1>Criar seu Foguinho</h1>
-  <form id="foguinhoForm">
-    <input type="text" id="nome" placeholder="Nome do Foguinho" required />
-    <input type="number" id="dias" placeholder="Dias de vida" required />
-    <input type="text" id="dono_secundario" placeholder="Dono Secundário (opcional)" />
-    <select id="skin">
-      <option value="1">Skin 1 (Amarelo)</option>
-      <option value="2">Skin 2 (Vermelho)</option>
-      <option value="3">Skin 3 (Roxo)</option>
-    </select>
-    <button type="submit">Adicionar Foguinho</button>
-    <div id="mensagem"></div>
-  </form>
-
-  <script>
-    document.getElementById('foguinhoForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-
-      const nome = document.getElementById('nome').value;
-      const dias = document.getElementById('dias').value;
-      const dono_secundario = document.getElementById('dono_secundario').value;
-      const skin = document.getElementById('skin').value;
-
-      const dados = { nome, dias, donoSecundario: dono_secundario, skin };
-      const msg = document.getElementById('mensagem');
-
-      try {
-        const resposta = await fetch('/adicionar-foguinho', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(dados)
-        });
-
-        const texto = await resposta.text();
-        let resultado;
-
-        try {
-          resultado = JSON.parse(texto);
-        } catch {
-          throw new Error('Resposta não é JSON: ' + texto);
-        }
-
-        if (resultado.success) {
-          msg.style.color = 'lightgreen';
-          msg.textContent = 'Foguinho criado com sucesso! Redirecionando...';
-          setTimeout(() => {
-            window.location.href = resultado.redirect || '/dashboard';
-          }, 1500);
-        } else {
-          msg.style.color = 'yellow';
-          msg.textContent = resultado.message || 'Erro ao criar Foguinho.';
-        }
-
-      } catch (erro) {
-        console.error('Erro:', erro);
-        msg.style.color = 'red';
-        msg.textContent = 'Erro inesperado ao criar o Foguinho.';
-      }
-    });
-  </script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
