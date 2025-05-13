@@ -1,72 +1,105 @@
-// main.js
-fetch('/api/user').then(res => {
-  if (!res.ok) {
-    window.location.href = '/dashboard.html';
-  }
-});
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-import * as THREE from 'https://cdn.skypack.dev/three@0.152.2';
-import { criarMundo3D } from './mundo.js';
-import { criarFoguinho } from './foguinhos.js';
+let scene, camera, renderer, loader;
+const foguinhoModels = {};
+const foguinhoSounds = {};
 
-let principal = null;
-let destino = null;
+init();
 
 async function init() {
-  const { scene, rendererInstance, cameraInstance } = criarMundo3D();
+  // Cena
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xaeeeee);
 
-  // Exemplo de dados mockados
-  const dadosFoguinhos = [
-    { tipo: 'ativo' },
-    { tipo: 'congelado' },
-    { tipo: 'apagado' }
-  ];
+  // Câmera
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 2, 5);
 
-  let posX = 0;
-  dadosFoguinhos.forEach(data => {
-    const foguinho = criarFoguinho(data.tipo);
-    foguinho.position.set(posX, 0.5, 0);
-    if (!principal && data.tipo === 'ativo') principal = foguinho;
-    scene.add(foguinho);
-    posX += 1.5;
-  });
+  // Renderizador
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  const canvas = rendererInstance.domElement;
+  // Luzes
+  const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight(0xffffff, 1);
+  sun.position.set(5, 10, 7);
+  scene.add(sun);
 
-  function onMove(event) {
-    const bounds = canvas.getBoundingClientRect();
-    const x = (event.clientX || event.touches?.[0].clientX) - bounds.left;
-    const y = (event.clientY || event.touches?.[0].clientY) - bounds.top;
+  // Loader
+  loader = new GLTFLoader();
 
-    mouse.x = (x / canvas.clientWidth) * 2 - 1;
-    mouse.y = -(y / canvas.clientHeight) * 2 + 1;
+  // Carregar modelos
+  await loadModels();
 
-    raycaster.setFromCamera(mouse, cameraInstance);
-    const chao = scene.children.find(obj => obj.name === 'chao');
-    const intersects = raycaster.intersectObject(chao);
-    if (intersects.length > 0) {
-      destino = intersects[0].point.clone();
-    }
-  }
+  // Buscar Foguinhos
+  fetch('/meus-foguinhos')
+    .then(res => res.json())
+    .then(data => {
+      let x = 0;
+      data.forEach(f => {
+        addFoguinho(f, x);
+        x += 2;
+      });
+    });
 
-  canvas.addEventListener('click', onMove);
-  canvas.addEventListener('touchstart', onMove);
-
-  function animarTudo() {
-    requestAnimationFrame(animarTudo);
-    if (principal && destino) {
-      const dir = destino.clone().sub(principal.position);
-      if (dir.length() > 0.1) {
-        dir.normalize();
-        principal.position.add(dir.multiplyScalar(0.05));
-      }
-    }
-    rendererInstance.render(scene, cameraInstance);
-  }
-
-  animarTudo();
+  animate();
 }
 
-window.onload = init;
+async function loadModels() {
+  const modelFiles = {
+    1: 'assets/foguinho-amarelo.glb',
+    2: 'assets/foguinho-vermelho.glb',
+    3: 'assets/foguinho-roxo.glb'
+  };
+
+  const soundFiles = {
+    1: 'assets/som-amarelo.mp3',
+    2: 'assets/som-vermelho.mp3',
+    3: 'assets/som-roxo.mp3'
+  };
+
+  for (let skin in modelFiles) {
+    foguinhoModels[skin] = await new Promise((resolve) => {
+      loader.load(modelFiles[skin], gltf => {
+        resolve(gltf.scene);
+      });
+    });
+
+    foguinhoSounds[skin] = new Audio(soundFiles[skin]);
+  }
+}
+
+function addFoguinho(f, x) {
+  const model = foguinhoModels[f.skin].clone();
+  model.position.set(x, 0, 0);
+  scene.add(model);
+
+  // Nome e dias
+  const nameDiv = document.createElement('div');
+  nameDiv.className = 'label';
+  nameDiv.textContent = `${f.nome} (${f.dias} dias)`;
+  nameDiv.style.position = 'absolute';
+  nameDiv.style.top = '10px';
+  nameDiv.style.left = `${x * 60 + 300}px`;
+  nameDiv.style.fontWeight = 'bold';
+  document.body.appendChild(nameDiv);
+
+  // Som ao clicar
+  model.userData.skin = f.skin;
+  model.userData.sound = foguinhoSounds[f.skin];
+  model.userData.name = f.nome;
+
+  model.traverse(child => {
+    if (child.isMesh) {
+      child.userData = model.userData;
+    }
+  });
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
