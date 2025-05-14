@@ -1,23 +1,23 @@
-// foguinhos.js
-import * as THREE from 'https://cdn.skypack.dev/three@0.152.2';
+// Lista simulada dos Foguinhos adicionados
+// Este conteúdo será populado dinamicamente pelo backend no futuro
 
-export function criarFoguinho(tipo = 'ativo') {
-  const geometria = new THREE.SphereGeometry(0.5, 32, 32);
-  let cor;
-
-  switch (tipo) {
-    case 'congelado':
-      cor = 0x88ccff;
-      break;
-    case 'apagado':
-      cor = 0x444444;
-      break;
-    default:
-      cor = 0xffffff;
-      break;
+const foguinhos = [
+  {
+    nome: "Foguinho 1",
+    dias: 12,
+    skin: "1", // 1 = amarelo
+    donoSecundario: ""
+  },
+  {
+    nome: "Foguinho 2",
+    dias: 7,
+    skin: "2", // 2 = vermelho
+    donoSecundario: ""
+  },
+  {
+    nome: "Foguinho 3",
+    dias: 20,
+    skin: "3", // 3 = roxo
+    donoSecundario: ""
   }
-
-  const material = new THREE.MeshStandardMaterial({ color: cor });
-  const foguinho = new THREE.Mesh(geometria, material);
-  return foguinho;
-}
+];
