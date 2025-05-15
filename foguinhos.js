@@ -1,45 +1,110 @@
-// foguinho.js
-
-const foguinhos = [
-  {
-    nome: "FoguinhoAmarelo",
-    dias: 12,
-    skin: 1,
-    donoSecundario: "Luna"
-  },
-  {
-    nome: "FoguinhoVermelho",
-    dias: 7,
-    skin: 2,
-    donoSecundario: "Mateus"
-  },
-  {
-    nome: "FoguinhoRoxo",
-    dias: 20,
-    skin: 3,
-    donoSecundario: "Sofia"
-  }
-];
-
-// Função para carregar os foguinhos no mundo (exemplo para o main.js usar)
-function carregarFoguinhosNaCena(scene, modeloAmarelo, modeloVermelho, modeloRoxo) {
-  foguinhos.forEach((foguinho, index) => {
-    let modelo;
-    if (foguinho.skin === 1) modelo = modeloAmarelo.clone();
-    else if (foguinho.skin === 2) modelo = modeloVermelho.clone();
-    else if (foguinho.skin === 3) modelo = modeloRoxo.clone();
-
-    if (modelo) {
-      modelo.position.set(index * 3, 0, 0); // posiciona os foguinhos lado a lado
-      scene.add(modelo);
-
-      // Criar nome e dias acima do foguinho (com Sprite ou outro método visual)
-      const div = document.createElement('div');
-      div.className = 'label';
-      div.innerHTML = `${foguinho.dias} dias<br>${foguinho.nome}`;
-      const label = new CSS2DObject(div);
-      label.position.set(0, 2, 0);
-      modelo.add(label);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Criar Foguinho</title>
+  <link rel="stylesheet" href="estilo.css">
+  <style>
+    body {
+      background: linear-gradient(to bottom right, #140024, #480070);
+      font-family: 'Arial', sans-serif;
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 0;
     }
-  });
-}
+
+    h1 {
+      margin-top: 30px;
+      font-size: 2em;
+    }
+
+    form {
+      margin: 30px auto;
+      max-width: 400px;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    input, select {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 10px;
+      font-size: 1em;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1em;
+      background-color: #8A2BE2;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #7a26c2;
+    }
+
+    .foguinho-preview {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 10px;
+      animation: bounce 1s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Criar seu Foguinho</h1>
+
+  <div class="foguinho-preview" id="foguinhoPreview">
+    <img id="foguinhoImg" src="foguinho1.png" width="100" />
+  </div>
+
+  <form id="formFoguinho" method="POST" action="/criar-foguinho">
+    <input type="text" name="nome" placeholder="Nome do Foguinho" required />
+    <input type="number" name="dias" placeholder="Dias com você" min="1" required />
+    <select name="skin" id="skinSelect">
+      <option value="1">Skin 1 (Amarelo)</option>
+      <option value="2">Skin 2 (Vermelho)</option>
+      <option value="3">Skin 3 (Roxo)</option>
+    </select>
+    <input type="text" name="donoSecundario" placeholder="Nome do dono secundário (opcional)" />
+    <br>
+    <button type="submit">Adicionar Foguinho</button>
+  </form>
+
+  <script>
+    const skinSelect = document.getElementById("skinSelect");
+    const foguinhoImg = document.getElementById("foguinhoImg");
+
+    const sons = {
+      1: new Audio("amarelo.mp3"),
+      2: new Audio("vermelho.mp3"),
+      3: new Audio("roxo.mp3")
+    };
+
+    skinSelect.addEventListener("change", () => {
+      const skin = skinSelect.value;
+      foguinhoImg.src = `foguinho${skin}.png`;
+      if (sons[skin]) {
+        sons[skin].play().catch(e => {
+          console.warn("Áudio não pôde ser reproduzido automaticamente.");
+        });
+      }
+    });
+  </script>
+</body>
+</html>
