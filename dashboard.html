@@ -70,7 +70,7 @@
   <h1>Criar seu Foguinho</h1>
 
   <div class="foguinho-preview" id="foguinhoPreview">
-    <img id="foguinhoImg" src="assets/skins/foguinho1.png" width="100" />
+    <img id="foguinhoImg" src="foguinho1.png" width="100" />
   </div>
 
   <form id="formFoguinho" method="POST" action="/criar-foguinho">
@@ -91,15 +91,19 @@
     const foguinhoImg = document.getElementById("foguinhoImg");
 
     const sons = {
-      1: new Audio("assets/sounds/amarelo.mp3"),
-      2: new Audio("assets/sounds/vermelho.mp3"),
-      3: new Audio("assets/sounds/roxo.mp3")
+      1: new Audio("amarelo.mp3"),
+      2: new Audio("vermelho.mp3"),
+      3: new Audio("roxo.mp3")
     };
 
     skinSelect.addEventListener("change", () => {
       const skin = skinSelect.value;
-      foguinhoImg.src = `assets/skins/foguinho${skin}.png`;
-      sons[skin].play();
+      foguinhoImg.src = `foguinho${skin}.png`;
+      if (sons[skin]) {
+        sons[skin].play().catch(e => {
+          console.warn("Áudio não pôde ser reproduzido automaticamente.");
+        });
+      }
     });
   </script>
 </body>
