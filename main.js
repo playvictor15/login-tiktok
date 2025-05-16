@@ -5,7 +5,7 @@ function criarFoguinhoVisual(foguinho, container) {
   div.className = "foguinho";
 
   const img = document.createElement("img");
-  img.src = `assets/skins/foguinho${foguinho.skin}.png`;
+  img.src = `foguinho${foguinho.skin}.png`; // Caminho corrigido (raiz)
   img.alt = "Foguinho";
   img.className = "foguinho-img";
 
@@ -25,8 +25,16 @@ function criarFoguinhoVisual(foguinho, container) {
 }
 
 function tocarSomDaSkin(skin) {
-  const audio = new Audio(`assets/sounds/${skin === "1" ? "amarelo" : skin === "2" ? "vermelho" : "roxo"}.mp3`);
-  audio.play();
+  const audio = new Audio(
+    skin === "1"
+      ? "amarelo.mp3"
+      : skin === "2"
+      ? "vermelho.mp3"
+      : "roxo.mp3"
+  );
+  audio.play().catch(() => {
+    console.warn("Áudio não pôde ser reproduzido automaticamente.");
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
