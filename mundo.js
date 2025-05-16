@@ -14,21 +14,23 @@ document.body.appendChild(renderer.domElement);
 const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambientLight);
 
-// Sons por skin
+// Sons por skin (sem assets/)
 const soundPaths = {
-  "1": 'assets/sounds/amarelo.mp3',
-  "2": 'assets/sounds/vermelho.mp3',
-  "3": 'assets/sounds/roxo.mp3'
+  "1": 'amarelo.mp3',
+  "2": 'vermelho.mp3',
+  "3": 'roxo.mp3'
 };
 
-// Modelos por skin
+// Modelos por skin (sem assets/)
 const modelPaths = {
-  "1": 'assets/models/foguinho-amarelo.glb',
-  "2": 'assets/models/foguinho-vermelho.glb',
-  "3": 'assets/models/foguinho-roxo.glb'
+  "1": 'foguinho-amarelo.glb',
+  "2": 'foguinho-vermelho.glb',
+  "3": 'foguinho-roxo.glb'
 };
 
-// Carrega os foguinhos definidos no arquivo separado
+// Verifica se a lista de foguinhos está disponível no window
+const foguinhos = window.foguinhos || [];
+
 async function carregarFoguinhos() {
   const loader = new GLTFLoader();
   const audioLoader = new THREE.AudioLoader();
@@ -48,11 +50,9 @@ async function carregarFoguinhos() {
       model.scale.set(1.5, 1.5, 1.5);
       scene.add(model);
 
-      // Texto do nome
       criarTexto3D(f.nome, posX, 2.2, 0);
       criarTexto3D(`${f.dias} dias`, posX, 2.8, 0);
 
-      // Som ao clicar
       const sound = new THREE.Audio(listener);
       audioLoader.load(soundPath, function (buffer) {
         sound.setBuffer(buffer);
@@ -79,7 +79,6 @@ async function carregarFoguinhos() {
   }
 }
 
-// Texto flutuante 3D
 function criarTexto3D(texto, x, y, z) {
   const div = document.createElement('div');
   div.className = 'label';
