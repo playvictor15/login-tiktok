@@ -3,8 +3,38 @@ body {
   overflow: hidden;
   font-family: sans-serif;
   background-color: #dff6ff;
+  color: #333;
 }
 
+/* Estilo do container da tela inicial */
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Estilo do botão de login */
+.botao-login {
+  margin-top: 20px;
+  padding: 12px 24px;
+  background-color: #8A2BE2;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.botao-login:hover {
+  background-color: #6b23b1;
+}
+
+/* Estilo do botão de login no canvas 3D */
 #login-container {
   position: absolute;
   top: 20px;
