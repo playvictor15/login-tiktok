@@ -76,7 +76,35 @@ app.get('/adicionar-foguinho', checkAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'painel.html'));
 });
 
-// Adiciona um Foguinho
+// POST alternativo usado por painel.html
+app.post('/criar-foguinho', checkAuth, (req, res) => {
+  const { nome, dias, skin, donoSecundario } = req.body;
+  const dono_id = req.session.user.id;
+
+  db.get(`SELECT * FROM foguinhos WHERE nome = ?`, [nome], (err, row) => {
+    if (err) return res.status(500).send('Erro ao verificar nome');
+    if (row) {
+      return res.send(`
+        <html>
+          <head><title>Erro</title></head>
+          <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+            <h2>Nome já está em uso</h2>
+            <a href="/adicionar-foguinho"><button>Voltar</button></a>
+          </body>
+        </html>
+      `);
+    }
+
+    db.run(`INSERT INTO foguinhos (nome, dias, skin, dono_id, dono_secundario)
+      VALUES (?, ?, ?, ?, ?)`,
+      [nome, dias, skin, dono_id, donoSecundario], (err) => {
+        if (err) return res.status(500).send('Erro ao salvar Foguinho');
+        res.redirect('/dashboard.html');
+      });
+  });
+});
+
+// Adiciona um Foguinho (API JSON)
 app.post('/adicionar-foguinho', checkAuth, (req, res) => {
   const { nome, dias, skin, dono_secundario } = req.body;
   const dono_id = req.session.user.id;
