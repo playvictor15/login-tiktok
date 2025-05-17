@@ -8,6 +8,12 @@ const path = require('path');
 const app = express();
 const db = new sqlite3.Database('./foguinho.db');
 
+// Middleware para liberar recursos externos (como estilos do Google)
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com;");
+  next();
+});
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(__dirname));
@@ -41,8 +47,9 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Simula login
-app.get('/login', (req, res) => {
+// Rota de login falsa simulada
+app.get('/auth/tiktok', (req, res) => {
+  // Simula login com TikTok
   req.session.user = {
     id: 'usuario-demo',
     username: 'Visitante',
@@ -61,7 +68,7 @@ function checkAuth(req, res, next) {
           <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
             <h2>Erro 401 - Acesso negado</h2>
             <p>Você precisa estar logado para acessar essa página.</p>
-            <a href="/login"><button>Ir para Login</button></a>
+            <a href="/auth/tiktok"><button>Ir para Login</button></a>
           </body>
         </html>
       `);
