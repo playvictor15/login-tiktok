@@ -18,7 +18,7 @@ app.use(session({
   saveUninitialized: true,
 }));
 
-// Criação de tabelas se não existirem
+// Criação de tabelas
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -41,7 +41,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Simulação de login (mantém TikTok funcionando, mas finge login local)
+// Simula login
 app.get('/login', (req, res) => {
   req.session.user = {
     id: 'usuario-demo',
@@ -51,7 +51,7 @@ app.get('/login', (req, res) => {
   res.redirect('/dashboard.html');
 });
 
-// Verifica se está logado
+// Middleware de autenticação
 function checkAuth(req, res, next) {
   if (!req.session.user) {
     if (req.path.includes('/adicionar-foguinho')) {
@@ -71,12 +71,12 @@ function checkAuth(req, res, next) {
   next();
 }
 
-// Página para adicionar Foguinho
+// Página de adicionar Foguinho
 app.get('/adicionar-foguinho', checkAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'painel.html'));
 });
 
-// POST alternativo usado por painel.html
+// Cria um novo Foguinho
 app.post('/criar-foguinho', checkAuth, (req, res) => {
   const { nome, dias, skin, donoSecundario } = req.body;
   const dono_id = req.session.user.id;
@@ -97,47 +97,16 @@ app.post('/criar-foguinho', checkAuth, (req, res) => {
 
     db.run(`INSERT INTO foguinhos (nome, dias, skin, dono_id, dono_secundario)
       VALUES (?, ?, ?, ?, ?)`,
-      [nome, dias, skin, dono_id, donoSecundario], (err) => {
+      [nome, dias, skin, dono_id, donoSecundario],
+      (err) => {
         if (err) return res.status(500).send('Erro ao salvar Foguinho');
         res.redirect('/dashboard.html');
-      });
+      }
+    );
   });
 });
 
-// Adiciona um Foguinho (API JSON)
-app.post('/adicionar-foguinho', checkAuth, (req, res) => {
-  const { nome, dias, skin, dono_secundario } = req.body;
-  const dono_id = req.session.user.id;
-
-  db.get(`SELECT * FROM foguinhos WHERE nome = ?`, [nome], (err, row) => {
-    if (row) {
-      return res.status(400).json({ error: 'Nome já usado' });
-    }
-
-    db.run(`INSERT INTO foguinhos (nome, dias, skin, dono_id, dono_secundario)
-      VALUES (?, ?, ?, ?, ?)`,
-      [nome, dias, skin, dono_id, dono_secundario], (err) => {
-        if (err) return res.status(500).json({ error: 'Erro ao salvar' });
-        res.json({ ok: true });
-      });
-  });
-});
-
-// API para obter Foguinhos do usuário
-app.get('/meus-foguinhos', checkAuth, (req, res) => {
-  db.all(`SELECT * FROM foguinhos WHERE dono_id = ? OR dono_secundario = ?`, 
-    [req.session.user.id, req.session.user.id], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Erro ao buscar' });
-    res.json(rows);
-  });
-});
-
-// Rota para o mundo 3D
-app.get('/mundo', checkAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
-
-// Start do servidor
+// Inicializa servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
