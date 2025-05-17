@@ -5,7 +5,7 @@ function criarFoguinhoVisual(foguinho, container) {
   div.className = "foguinho";
 
   const img = document.createElement("img");
-  img.src = `foguinho${foguinho.skin}.png`; // Caminho corrigido (raiz)
+  img.src = `foguinho${foguinho.skin}.png`;
   img.alt = "Foguinho";
   img.className = "foguinho-img";
 
