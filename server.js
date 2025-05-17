@@ -10,7 +10,7 @@ const db = new sqlite3.Database('./foguinho.db');
 
 // Middleware para liberar recursos externos (como estilos do Google)
 app.use((req, res, next) => {
-  res.setHeader("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com;");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; script-src 'self' 'unsafe-inline';");
   next();
 });
 
