@@ -107,7 +107,7 @@ app.post('/criar-foguinho', checkAuth, (req, res) => {
       [nome, dias, skin, dono_id, donoSecundario],
       (err) => {
         if (err) return res.status(500).send('Erro ao salvar Foguinho');
-        res.redirect('/dashboard.html');
+        res.redirect('/mundo.html'); // ✅ Redireciona direto para o mundo após criar
       }
     );
   });
