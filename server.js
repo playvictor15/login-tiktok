@@ -113,6 +113,18 @@ app.post('/criar-foguinho', checkAuth, (req, res) => {
   });
 });
 
+// Rota para buscar todos os Foguinhos do usuário autenticado
+app.get('/foguinhos', checkAuth, (req, res) => {
+  const dono_id = req.session.user.id;
+  db.all(`SELECT * FROM foguinhos WHERE dono_id = ?`, [dono_id], (err, rows) => {
+    if (err) {
+      console.error('Erro ao buscar Foguinhos:', err);
+      return res.status(500).json({ erro: 'Erro ao buscar Foguinhos' });
+    }
+    res.json(rows);
+  });
+});
+
 // Inicializa servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
