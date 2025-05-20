@@ -1,5 +1,3 @@
-let foguinhos = [];
-
 function criarFoguinhoVisual(foguinho, container) {
   const div = document.createElement("div");
   div.className = "foguinho";
@@ -39,11 +37,28 @@ function tocarSomDaSkin(skin) {
 
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("foguinhoContainer");
-  if (container && Array.isArray(foguinhos)) {
-    container.innerHTML = "";
-    foguinhos.forEach(f => criarFoguinhoVisual(f, container));
-  }
 
+  // Busca os Foguinhos salvos no servidor
+  fetch("/foguinhos")
+    .then(response => {
+      if (!response.ok) throw new Error("Não autorizado ou erro ao buscar");
+      return response.json();
+    })
+    .then(data => {
+      foguinhos = data;
+      if (container && Array.isArray(foguinhos)) {
+        container.innerHTML = "";
+        foguinhos.forEach(f => criarFoguinhoVisual(f, container));
+      }
+    })
+    .catch(err => {
+      console.error("Erro ao carregar Foguinhos:", err);
+      if (container) {
+        container.innerHTML = "<p>Não foi possível carregar os Foguinhos.</p>";
+      }
+    });
+
+  // Reproduz som ao trocar skin na criação
   const skinSelect = document.querySelector("select[name='skin']");
   if (skinSelect) {
     skinSelect.addEventListener("change", () => {
