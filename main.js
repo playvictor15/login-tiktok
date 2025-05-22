@@ -1,68 +1,108 @@
-function criarFoguinhoVisual(foguinho, container) {
-  const div = document.createElement("div");
-  div.className = "foguinho";
+import * as THREE from './three.module.js';
+import { GLTFLoader } from './GLTFLoader.js';
 
-  const img = document.createElement("img");
-  img.src = `foguinho${foguinho.skin}.png`;
-  img.alt = "Foguinho";
-  img.className = "foguinho-img";
+let scene, camera, renderer;
+const mixers = [];
+const foguinhos = [];
+const clock = new THREE.Clock();
 
-  const nome = document.createElement("div");
-  nome.className = "foguinho-nome";
-  nome.innerText = foguinho.nome;
+init();
+animate();
 
-  const dias = document.createElement("div");
-  dias.className = "foguinho-dias";
-  dias.innerText = `${foguinho.dias} dias`;
+async function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xa0d8f0);
 
-  div.appendChild(img);
-  div.appendChild(dias);
-  div.appendChild(nome);
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 1.6, 3);
 
-  container.appendChild(div);
-}
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-function tocarSomDaSkin(skin) {
-  const audio = new Audio(
-    skin === "1"
-      ? "amarelo.mp3"
-      : skin === "2"
-      ? "vermelho.mp3"
-      : "roxo.mp3"
+  const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+  light.position.set(0, 200, 0);
+  scene.add(light);
+
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100),
+    new THREE.MeshPhongMaterial({ color: 0x66bb66 })
   );
-  audio.play().catch(() => {
-    console.warn("Áudio não pôde ser reproduzido automaticamente.");
-  });
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+
+  // Carregar todos os foguinhos do backend (simulação mockada)
+  const foguinhosData = await fetch('/api/foguinhos').then(res => res.json());
+  for (const f of foguinhosData) {
+    await addFoguinho(f);
+  }
+
+  window.addEventListener('resize', onWindowResize, false);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const container = document.getElementById("foguinhoContainer");
+async function addFoguinho(data) {
+  const loader = new GLTFLoader();
+  const modelPath = data.skin === '1' ? 'amarelo.glb' :
+                    data.skin === '2' ? 'vermelho.glb' :
+                    'roxo.glb';
 
-  // Busca os Foguinhos salvos no servidor
-  fetch("/foguinhos")
-    .then(response => {
-      if (!response.ok) throw new Error("Não autorizado ou erro ao buscar");
-      return response.json();
-    })
-    .then(data => {
-      foguinhos = data;
-      if (container && Array.isArray(foguinhos)) {
-        container.innerHTML = "";
-        foguinhos.forEach(f => criarFoguinhoVisual(f, container));
-      }
-    })
-    .catch(err => {
-      console.error("Erro ao carregar Foguinhos:", err);
-      if (container) {
-        container.innerHTML = "<p>Não foi possível carregar os Foguinhos.</p>";
-      }
-    });
+  const gltf = await loader.loadAsync(modelPath);
+  const model = gltf.scene;
+  model.position.set(Math.random() * 5 - 2.5, 0, Math.random() * 5 - 2.5);
+  model.scale.set(1.5, 1.5, 1.5);
+  scene.add(model);
 
-  // Reproduz som ao trocar skin na criação
-  const skinSelect = document.querySelector("select[name='skin']");
-  if (skinSelect) {
-    skinSelect.addEventListener("change", () => {
-      tocarSomDaSkin(skinSelect.value);
-    });
+  const mixer = new THREE.AnimationMixer(model);
+  if (gltf.animations.length > 0) {
+    mixer.clipAction(gltf.animations[0]).play(); // idle ou dance
+  }
+  mixers.push(mixer);
+
+  // Som
+  const listener = new THREE.AudioListener();
+  camera.add(listener);
+
+  const sound = new THREE.Audio(listener);
+  const audioLoader = new THREE.AudioLoader();
+  const soundPath = data.skin === '1' ? 'som1.mp3' :
+                    data.skin === '2' ? 'som2.mp3' :
+                    'som3.mp3';
+
+  audioLoader.load(soundPath, buffer => {
+    sound.setBuffer(buffer);
+    sound.setLoop(false);
+    sound.setVolume(0.5);
+  });
+
+  foguinhos.push({ model, mixer, sound });
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  mixers.forEach(m => m.update(delta));
+  renderer.render(scene, camera);
+}
+
+// Controle simples do teclado para o primeiro Foguinho
+document.addEventListener('keydown', (event) => {
+  if (foguinhos.length === 0) return;
+  const foguinho = foguinhos[0].model;
+  const sound = foguinhos[0].sound;
+
+  switch (event.key.toLowerCase()) {
+    case 'w': foguinho.position.z -= 0.1; break;
+    case 's': foguinho.position.z += 0.1; break;
+    case 'a': foguinho.position.x -= 0.1; break;
+    case 'd': foguinho.position.x += 0.1; break;
+    case ' ':  // espaço = som
+      if (sound && !sound.isPlaying) sound.play();
+      break;
   }
 });
