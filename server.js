@@ -8,9 +8,13 @@ const path = require('path');
 const app = express();
 const db = new sqlite3.Database('./foguinho.db');
 
-// Middleware para liberar recursos externos (como estilos do Google)
+// ✅ Middleware com CSP corrigido para liberar CDN do Three.js
 app.use((req, res, next) => {
-  res.setHeader("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; script-src 'self' 'unsafe-inline';");
+  res.setHeader("Content-Security-Policy", 
+    "default-src 'self'; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; " +
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;"
+  );
   next();
 });
 
