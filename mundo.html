@@ -19,8 +19,109 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/libs/stats.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/libs/tween.min.js"></script>
-  <script src="mundo.js"></script>
+
+  <script>
+    fetch('/foguinhos')
+      .then(res => res.json())
+      .then(foguinhos => init(foguinhos))
+      .catch(err => {
+        alert("Erro ao carregar seus Foguinhos. Faça login e crie um Foguinho primeiro.");
+        console.error(err);
+      });
+
+    function init(foguinhos) {
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      camera.position.set(0, 10, 10);
+      controls.update();
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+      scene.add(ambientLight);
+
+      const rua = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 100),
+        new THREE.MeshStandardMaterial({ color: 0x222222 })
+      );
+      rua.rotation.x = -Math.PI / 2;
+      scene.add(rua);
+
+      const loader = new THREE.GLTFLoader();
+      const mixers = [];
+      const teclas = {};
+
+      document.addEventListener('keydown', e => teclas[e.key.toLowerCase()] = true);
+      document.addEventListener('keyup', e => teclas[e.key.toLowerCase()] = false);
+
+      const skinMap = {
+        1: { file: 'foguinho_amarelo.glb', som: 'amarelo.mp3' },
+        2: { file: 'foguinho_vermelho.glb', som: 'vermelho.mp3' },
+        3: { file: 'foguinho_roxo.glb', som: 'roxo.mp3' }
+      };
+
+      const foguinhosObj = [];
+
+      foguinhos.forEach((foguinho, i) => {
+        const skin = skinMap[foguinho.skin];
+        if (!skin) return;
+
+        loader.load(skin.file, gltf => {
+          const model = gltf.scene;
+          model.position.set(i * 5, 0, 0);
+          model.scale.set(1.5, 1.5, 1.5);
+          scene.add(model);
+
+          const mixer = new THREE.AnimationMixer(model);
+          if (gltf.animations.length > 0) {
+            const action = mixer.clipAction(gltf.animations[0]);
+            action.play();
+          }
+
+          mixers.push(mixer);
+
+          const som = new Audio(skin.som);
+          som.loop = false;
+
+          foguinhosObj.push({
+            mesh: model,
+            som: som,
+            mixer: mixer
+          });
+
+        }, undefined, e => console.error("Erro ao carregar modelo:", e));
+      });
+
+      const clock = new THREE.Clock();
+      const velocidade = 0.1;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+        mixers.forEach(m => m.update(delta));
+
+        const f = foguinhosObj[0]; // Apenas o primeiro é controlável
+        if (f && f.mesh) {
+          if (teclas['w']) f.mesh.position.z -= velocidade;
+          if (teclas['s']) f.mesh.position.z += velocidade;
+          if (teclas['a']) f.mesh.position.x -= velocidade;
+          if (teclas['d']) f.mesh.position.x += velocidade;
+
+          if ((teclas['e'] || teclas[' ']) && f.som.paused) {
+            f.som.currentTime = 0;
+            f.som.play();
+          }
+        }
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      animate();
+    }
+  </script>
 </body>
 </html>
