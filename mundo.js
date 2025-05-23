@@ -1,117 +1,106 @@
-import * as THREE from 'https://cdn.skypack.dev/three@0.150.1';
-import { GLTFLoader } from 'https://cdn.skypack.dev/three/examples/jsm/loaders/GLTFLoader.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js';
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xaeeeee);
+let camera, scene, renderer, clock, mixers = [];
+let foguinhoObjs = [], teclas = {};
+const loader = new GLTFLoader();
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 5;
+init();
+animate();
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+function init() {
+  // Cena e câmera
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(0, 5, 10);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 1);
-scene.add(ambientLight);
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-// Sons por skin (sem assets/)
-const soundPaths = {
-  "1": 'amarelo.mp3',
-  "2": 'vermelho.mp3',
-  "3": 'roxo.mp3'
-};
+  // Luz
+  const light = new THREE.AmbientLight(0xffffff, 1);
+  scene.add(light);
 
-// Modelos por skin (sem assets/)
-const modelPaths = {
-  "1": 'foguinho-amarelo.glb',
-  "2": 'foguinho-vermelho.glb',
-  "3": 'foguinho-roxo.glb'
-};
+  // Controles
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1, 0);
+  controls.update();
 
-// Verifica se a lista de foguinhos está disponível no window
-const foguinhos = window.foguinhos || [];
+  // Rua/plano
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100),
+    new THREE.MeshStandardMaterial({ color: 0x222222 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
 
-async function carregarFoguinhos() {
-  const loader = new GLTFLoader();
-  const audioLoader = new THREE.AudioLoader();
-  const listener = new THREE.AudioListener();
-  camera.add(listener);
+  // Relógio
+  clock = new THREE.Clock();
 
-  let posX = -5;
+  // Teclado
+  window.addEventListener('keydown', e => teclas[e.key.toLowerCase()] = true);
+  window.addEventListener('keyup', e => teclas[e.key.toLowerCase()] = false);
 
-  for (const f of foguinhos) {
-    const skin = f.skin || "1";
-    const modelPath = modelPaths[skin];
-    const soundPath = soundPaths[skin];
-
-    loader.load(modelPath, function (gltf) {
-      const model = gltf.scene;
-      model.position.set(posX, 0, 0);
-      model.scale.set(1.5, 1.5, 1.5);
-      scene.add(model);
-
-      criarTexto3D(f.nome, posX, 2.2, 0);
-      criarTexto3D(`${f.dias} dias`, posX, 2.8, 0);
-
-      const sound = new THREE.Audio(listener);
-      audioLoader.load(soundPath, function (buffer) {
-        sound.setBuffer(buffer);
-        sound.setVolume(1.0);
+  // Carrega os Foguinhos
+  fetch('/foguinhos')
+    .then(res => res.json())
+    .then(foguinhos => {
+      foguinhos.forEach((foguinho, index) => {
+        const posX = index * 3;
+        carregarFoguinho(foguinho, posX, 0);
       });
-
-      window.addEventListener('click', (event) => {
-        const mouse = new THREE.Vector2(
-          (event.clientX / window.innerWidth) * 2 - 1,
-          -(event.clientY / window.innerHeight) * 2 + 1
-        );
-
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObject(model, true);
-
-        if (intersects.length > 0) {
-          sound.play();
-        }
-      });
+    })
+    .catch(err => {
+      alert("Erro ao carregar seus Foguinhos. Faça login e crie um Foguinho primeiro.");
+      console.error(err);
     });
 
-    posX += 4;
-  }
+  // Responsivo
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 }
 
-function criarTexto3D(texto, x, y, z) {
-  const div = document.createElement('div');
-  div.className = 'label';
-  div.textContent = texto;
-  div.style.position = 'absolute';
-  div.style.color = '#000';
-  div.style.fontSize = '18px';
-  div.style.fontWeight = 'bold';
-  div.style.pointerEvents = 'none';
-  div.style.transform = `translate(-50%, -50%)`;
+function carregarFoguinho(foguinho, x, z) {
+  const skin = foguinho.skin;
+  const modelo = skin == 1 ? 'foguinho_amarelo.glb' : skin == 2 ? 'foguinho_vermelho.glb' : 'foguinho_roxo.glb';
+  const som = new Audio(skin == 1 ? 'amarelo.mp3' : skin == 2 ? 'vermelho.mp3' : 'roxo.mp3');
+  loader.load(modelo, gltf => {
+    const obj = gltf.scene;
+    obj.position.set(x, 0, z);
+    obj.scale.set(2, 2, 2);
+    scene.add(obj);
 
-  document.body.appendChild(div);
+    // Animação
+    const mixer = new THREE.AnimationMixer(obj);
+    gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+    mixers.push(mixer);
 
-  const update = () => {
-    const vector = new THREE.Vector3(x, y, z).project(camera);
-    const sx = (vector.x + 1) / 2 * window.innerWidth;
-    const sy = (-vector.y + 1) / 2 * window.innerHeight;
-    div.style.left = `${sx}px`;
-    div.style.top = `${sy}px`;
-  };
-
-  const animate = () => {
-    update();
-    requestAnimationFrame(animate);
-  };
-
-  animate();
+    foguinhoObjs.push({ obj, som, nome: foguinho.nome });
+  });
 }
-
-carregarFoguinhos();
 
 function animate() {
   requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+
+  // Atualiza mixers
+  mixers.forEach(mixer => mixer.update(delta));
+
+  // Movimento do primeiro Foguinho
+  const f = foguinhoObjs[0];
+  if (f) {
+    if (teclas['w']) f.obj.position.z -= 0.1;
+    if (teclas['s']) f.obj.position.z += 0.1;
+    if (teclas['a']) f.obj.position.x -= 0.1;
+    if (teclas['d']) f.obj.position.x += 0.1;
+  }
+
   renderer.render(scene, camera);
 }
-animate();
