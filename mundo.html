@@ -4,95 +4,135 @@
   <meta charset="UTF-8" />
   <title>Mundo dos Foguinhos</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: black;
-    }
-    canvas {
-      display: block;
+    body { margin: 0; overflow: hidden; background: #202020; }
+    canvas { display: block; }
+    .label {
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      text-shadow: 1px 1px 2px black;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/controls/OrbitControls.js';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
+    import { CSS2DRenderer, CSS2DObject } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/renderers/CSS2DRenderer.js';
 
-<script>
-  fetch('/foguinhos')
-    .then(res => res.json())
-    .then(foguinhos => {
-      init(foguinhos);
-    })
-    .catch(err => {
-      alert("Erro ao carregar seus Foguinhos. Faça login e crie um Foguinho primeiro.");
-      console.error(err);
-    });
-
-  function init(foguinhos) {
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
+    camera.position.set(0, 5, 12);
+
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(innerWidth, innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    camera.position.set(0, 5, 10);
-    controls.update();
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(innerWidth, innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0';
+    document.body.appendChild(labelRenderer.domElement);
 
-    const light = new THREE.AmbientLight(0xffffff, 1.5);
+    const controls = new OrbitControls(camera, labelRenderer.domElement);
+    controls.enableDamping = true;
+
+    scene.add(new THREE.AmbientLight(0x404040));
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(0, 10, 5);
     scene.add(light);
 
-    const ruaGeometry = new THREE.PlaneGeometry(100, 100);
-    const ruaMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-    const rua = new THREE.Mesh(ruaGeometry, ruaMaterial);
-    rua.rotation.x = -Math.PI / 2;
-    scene.add(rua);
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshStandardMaterial({ color: 0x333333 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
 
-    const loader = new THREE.GLTFLoader();
+    const listener = new THREE.AudioListener();
+    camera.add(listener);
+    const audioLoader = new THREE.AudioLoader();
+    const soundPaths = ['danca_foguinho.mp3', 'aceno_foguinho.mp3', 'andar_foguinho.mp3'];
+    const sounds = soundPaths.map(() => new THREE.Audio(listener));
+
+    soundPaths.forEach((path, i) => {
+      audioLoader.load(path, buffer => sounds[i].setBuffer(buffer));
+    });
+
+    const foguinhos = [
+      { nome: "Foguinho 1", dias: 5, skin: 1, x: -4, file: 'foguinho1.glb' },
+      { nome: "Foguinho 2", dias: 10, skin: 2, x: 0, file: 'foguinho2.glb' },
+      { nome: "Foguinho 3", dias: 15, skin: 3, x: 4, file: 'foguinho3.glb' },
+    ];
+
+    const loader = new GLTFLoader();
     const mixers = [];
 
-    const skins = {
-      1: { model: 'foguinho1.glb', sound: 'amarelo.mp3' },
-      2: { model: 'foguinho2.glb', sound: 'vermelho.mp3' },
-      3: { model: 'foguinho3.glb', sound: 'roxo.mp3' }
-    };
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
 
-    foguinhos.forEach((foguinho, i) => {
-      const { model, sound } = skins[foguinho.skin] || skins[1];
-
-      loader.load(model, gltf => {
+    foguinhos.forEach((f, i) => {
+      loader.load(f.file, gltf => {
         const model = gltf.scene;
-        model.position.set(i * 3, 0, 0);
+        model.position.set(f.x, 1, 0);
+        model.userData.float = { offset: Math.random() * Math.PI * 2 };
+
         scene.add(model);
 
-        const soundEl = new Audio(sound);
-        soundEl.play();
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'label';
+        labelDiv.innerHTML = `${f.nome}<br>${f.dias} dias`;
+        const labelObj = new CSS2DObject(labelDiv);
+        labelObj.position.set(0, 2.5, 0);
+        model.add(labelObj);
 
-        const mixer = new THREE.AnimationMixer(model);
-        if (gltf.animations.length > 0) {
+        if (gltf.animations.length) {
+          const mixer = new THREE.AnimationMixer(model);
           const action = mixer.clipAction(gltf.animations[0]);
           action.play();
+          mixers.push(mixer);
         }
-        mixers.push(mixer);
-      }, undefined, err => {
-        console.error('Erro ao carregar modelo:', err);
+
+        model.userData.sound = sounds[i];
+        model.userData.mesh = model;
+
+        // Click interativo
+        window.addEventListener('click', event => {
+          pointer.x = (event.clientX / innerWidth) * 2 - 1;
+          pointer.y = -(event.clientY / innerHeight) * 2 + 1;
+          raycaster.setFromCamera(pointer, camera);
+          const intersects = raycaster.intersectObject(model, true);
+          if (intersects.length > 0) {
+            model.userData.sound.play();
+          }
+        });
       });
     });
 
-    const clock = new THREE.Clock();
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      labelRenderer.setSize(innerWidth, innerHeight);
+    });
 
     function animate() {
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      mixers.forEach(m => m.update(delta));
+      const t = performance.now() * 0.001;
+      scene.traverse(obj => {
+        if (obj.userData.float) {
+          obj.position.y = 1 + Math.sin(t + obj.userData.float.offset) * 0.2;
+        }
+      });
+      mixers.forEach(m => m.update(0.016));
+      controls.update();
       renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
     }
 
     animate();
-  }
-</script>
+  </script>
 </body>
 </html>
