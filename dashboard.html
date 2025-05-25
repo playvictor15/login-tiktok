@@ -54,10 +54,16 @@
     }
 
     .foguinho-preview {
-      width: 100px;
-      height: 100px;
+      width: 130px;
+      height: 130px;
       margin: 0 auto 10px;
       animation: bounce 1s infinite;
+    }
+
+    .foguinho-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     @keyframes bounce {
@@ -70,7 +76,7 @@
   <h1>Criar seu Foguinho</h1>
 
   <div class="foguinho-preview" id="foguinhoPreview">
-    <img id="foguinhoImg" src="amarelo.jpeg" width="100" alt="Pré-visualização do Foguinho" />
+    <img id="foguinhoImg" src="amarelo.jpeg" alt="Pré-visualização do Foguinho" />
   </div>
 
   <form id="formFoguinho" method="POST" action="/criar-foguinho">
@@ -90,6 +96,12 @@
     const skinSelect = document.getElementById("skinSelect");
     const foguinhoImg = document.getElementById("foguinhoImg");
 
+    const imagens = {
+      "1": "amarelo.jpeg",
+      "2": "vermelho.jpeg",
+      "3": "roxo.jpeg"
+    };
+
     const sons = {
       "1": new Audio("amarelo.mp3"),
       "2": new Audio("vermelho.mp3"),
@@ -98,7 +110,7 @@
 
     skinSelect.addEventListener("change", () => {
       const skin = skinSelect.value;
-      foguinhoImg.src = `foguinho${skin}.png`;
+      foguinhoImg.src = imagens[skin];
 
       if (sons[skin]) {
         sons[skin].play().catch(e => {
