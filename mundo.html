@@ -72,13 +72,12 @@
     loja.position.set(0, 1, -8);
     scene.add(loja);
 
-    // Foguinhos
+    // Foguinhos - novos modelos GLB
     const loader = new GLTFLoader();
-
     const foguinhos = [
-      { path: 'amarelo.glb', position: [-2, 0, 0] },
-      { path: 'vermelho.glb', position: [0, 0, 0] },
-      { path: 'roxo.glb', position: [2, 0, 0] }
+      { path: 'foguinho_amarelo_0525132838_texture.glb', position: [-2, 0, 0] },
+      { path: 'Fire_Buddy_0527220119_texture.glb', position: [0, 0, 0] },
+      { path: 'roxo.glb', position: [2, 0, 0] } // Enviar depois o modelo real
     ];
 
     foguinhos.forEach(f => {
@@ -99,7 +98,7 @@
     animate();
 
     window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
