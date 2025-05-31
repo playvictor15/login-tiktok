@@ -1,5 +1,4 @@
 import * as THREE from './três.módulo.js';
-
 import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
