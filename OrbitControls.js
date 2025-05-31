@@ -1,1 +1,0 @@
-// Conteúdo simulado de OrbitControls.js
