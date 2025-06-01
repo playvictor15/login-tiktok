@@ -34,6 +34,14 @@ const audioLoader = new THREE.AudioLoader();
 const listener = new THREE.AudioListener();
 camera.add(listener);
 
+// Prevenir bloqueio de som em navegadores
+window.addEventListener('click', () => {
+  const silent = new THREE.Audio(listener);
+  audioLoader.load('amarelo.mp3', buffer => {
+    silent.setBuffer(buffer);
+  });
+}, { once: true });
+
 function carregarSom(path, onLoad) {
   const som = new THREE.Audio(listener);
   audioLoader.load(path, function (buffer) {
@@ -72,6 +80,8 @@ function carregarFoguinho(skin, posX = 0) {
       model.add(som);
       som.play();
     });
+  }, undefined, function (error) {
+    console.error('Erro ao carregar modelo:', error);
   });
 }
 
