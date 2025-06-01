@@ -15,112 +15,112 @@
   </style>
 </head>
 <body>
-<script type="module" src="./main.js">
-   import * as THREE from './three.module.js';
-   import { OrbitControls } from './OrbitControls.js';
-   import { GLTFLoader } from './GLTFLoader.js';
+<script type="module">
+  import * as THREE from './three.module.js';
+  import { OrbitControls } from './OrbitControls.js';
+  import { GLTFLoader } from './GLTFLoader.js';
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87CEEB); // Céu azul
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87CEEB); // Céu azul
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 5, 10);
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 5, 10);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 1, 0);
-    controls.update();
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1, 0);
+  controls.update();
 
-    // Luzes
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(10, 10, 10);
-    scene.add(dirLight);
+  // Luzes
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(10, 10, 10);
+  scene.add(dirLight);
 
-    // Chão com textura
-    const groundTexture = new THREE.TextureLoader().load('rua-textura.jpg');
-    groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
-    groundTexture.repeat.set(10, 10);
-    const groundMaterial = new THREE.MeshStandardMaterial({ map: groundTexture });
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    scene.add(ground);
+  // Chão com textura
+  const groundTexture = new THREE.TextureLoader().load('rua-textura.jpg');
+  groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+  groundTexture.repeat.set(10, 10);
+  const groundMaterial = new THREE.MeshStandardMaterial({ map: groundTexture });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), groundMaterial);
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
 
-    // Prédios
-    function criarPredio(x, z) {
-      const predio = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 5, 2),
-        new THREE.MeshStandardMaterial({ color: 0x333333 })
-      );
-      predio.position.set(x, 2.5, z);
-      scene.add(predio);
-    }
-
-    criarPredio(-5, -5);
-    criarPredio(5, -5);
-    criarPredio(-5, 5);
-    criarPredio(5, 5);
-
-    // Loja
-    const loja = new THREE.Mesh(
-      new THREE.BoxGeometry(3, 2, 3),
-      new THREE.MeshStandardMaterial({ color: 0xff6600 })
+  // Prédios
+  function criarPredio(x, z) {
+    const predio = new THREE.Mesh(
+      new THREE.BoxGeometry(2, 5, 2),
+      new THREE.MeshStandardMaterial({ color: 0x333333 })
     );
-    loja.position.set(0, 1, -8);
-    scene.add(loja);
+    predio.position.set(x, 2.5, z);
+    scene.add(predio);
+  }
 
-    // Modelos dos Foguinhos
-    const loader = new GLTFLoader();
-    const foguinhos = [
-      { path: 'foguinho-amarelo.glb', position: [-2, 0, 0], som: 'amarelo.mp3' },
-      { path: 'foguinho-vermelho.glb', position: [0, 0, 0], som: 'vermelho.mp3' },
-      { path: 'roxo.glb', position: [2, 0, 0], som: 'roxo.mp3' }
-    ];
+  criarPredio(-5, -5);
+  criarPredio(5, -5);
+  criarPredio(-5, 5);
+  criarPredio(5, 5);
 
-    foguinhos.forEach(f => {
-      loader.load(f.path, gltf => {
-        const model = gltf.scene;
-        model.position.set(...f.position);
-        scene.add(model);
+  // Loja
+  const loja = new THREE.Mesh(
+    new THREE.BoxGeometry(3, 2, 3),
+    new THREE.MeshStandardMaterial({ color: 0xff6600 })
+  );
+  loja.position.set(0, 1, -8);
+  scene.add(loja);
 
-        // Tocar som ao clicar no modelo
-        const audio = new Audio(f.som);
-        model.userData.sound = audio;
+  // Modelos dos Foguinhos
+  const loader = new GLTFLoader();
+  const foguinhos = [
+    { path: 'foguinho-amarelo.glb', position: [-2, 0, 0], som: 'amarelo.mp3' },
+    { path: 'foguinho-vermelho.glb', position: [0, 0, 0], som: 'vermelho.mp3' },
+    { path: 'roxo.glb', position: [2, 0, 0], som: 'roxo.mp3' }
+  ];
 
-        model.traverse(child => {
-          if (child.isMesh) {
-            child.cursor = 'pointer';
-            child.userData.clickable = true;
-          }
-        });
+  foguinhos.forEach(f => {
+    loader.load(f.path, gltf => {
+      const model = gltf.scene;
+      model.position.set(...f.position);
+      scene.add(model);
 
-        model.name = f.path;
+      // Tocar som ao clicar no modelo
+      const audio = new Audio(f.som);
+      model.userData.sound = audio;
 
-        window.addEventListener('click', () => {
-          if (audio && audio.play) {
-            audio.play().catch(() => {});
-          }
-        });
-      }, undefined, error => {
-        console.error(`Erro ao carregar ${f.path}`, error);
+      model.traverse(child => {
+        if (child.isMesh) {
+          child.cursor = 'pointer';
+          child.userData.clickable = true;
+        }
       });
+
+      model.name = f.path;
+
+      window.addEventListener('click', () => {
+        if (audio && audio.play) {
+          audio.play().catch(() => {});
+        }
+      });
+    }, undefined, error => {
+      console.error(`Erro ao carregar ${f.path}`, error);
     });
+  });
 
-    function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    }
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
 
-    animate();
+  animate();
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-  </script>
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
 </body>
 </html>
