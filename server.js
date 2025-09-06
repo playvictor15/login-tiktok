@@ -1,70 +1,72 @@
 require('dotenv').config();
-const path = require('path');
 const express = require('express');
 const session = require('express-session');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const db = new sqlite3.Database('./foguinho.db');
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Sessão mockada
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'segredo-foguinho',
+  secret: 'segredo-foguinho',
   resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 * 8 }
+  saveUninitialized: true
 }));
 
-// Servir os arquivos estáticos a partir da pasta atual (raiz do projeto)
+// Middleware de CSP relaxado para evitar erro de CSS externo bloqueado
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
+  next();
+});
+
+// Mock de login do TikTok
+app.get('/auth/tiktok', (req, res) => {
+  req.session.user = { username: 'MockUserTikTok' };
+  res.redirect('/dashboard.html');
+});
+
+// Mock de logout
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/'));
+});
+
+// Rotas estáticas
 app.use(express.static(path.join(__dirname)));
 
-// Proteção simples para páginas específicas
-const guard = (req, res, next) => {
-  if (req.session && req.session.user) return next();
-  return res.redirect('/index.html');
-};
-
-// Login mock (GET e POST)
-app.post('/login-mock', (req, res) => {
-  const { username } = req.body || {};
-  req.session.user = {
-    id: 'mock-user-1',
-    name: username || 'Usuário Foquinho',
-    avatar: '/roxo.jpeg'
-  };
-  return res.redirect('/dashboard.html');
+// Rotas para criar e listar foguinhos
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS foguinhos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT,
+    skin INTEGER,
+    dias INTEGER,
+    dono TEXT
+  )`);
 });
 
-app.get('/login-mock', (req, res) => {
-  req.session.user = { id: 'mock-user-1', name: 'Usuário Foquinho', avatar: '/roxo.jpeg' };
-  return res.redirect('/dashboard.html');
+app.post('/criar-foguinho', (req, res) => {
+  if (!req.session.user) return res.status(401).send('Não autenticado');
+
+  const { nome, skin } = req.body;
+  const stmt = db.prepare("INSERT INTO foguinhos (nome, skin, dias, dono) VALUES (?, ?, ?, ?)");
+  stmt.run(nome, skin, 0, req.session.user.username, function(err) {
+    if (err) return res.status(500).send("Erro ao salvar Foguinho");
+    res.redirect('/dashboard.html');
+  });
+  stmt.finalize();
 });
 
-app.get('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/index.html'));
+app.get('/meus-foguinhos', (req, res) => {
+  if (!req.session.user) return res.status(401).json([]);
+  db.all("SELECT * FROM foguinhos WHERE dono = ?", [req.session.user.username], (err, rows) => {
+    if (err) return res.status(500).json([]);
+    res.json(rows);
+  });
 });
 
-// Sessão atual
-app.get('/api/session', (req, res) => {
-  if (req.session && req.session.user) return res.json({ ok: true, user: req.session.user });
-  return res.json({ ok: false });
-});
-
-// Lista mock de Foquinhos
-app.get('/api/foquinhos', guard, (req, res) => {
-  const list = [
-    { id: 1, nome: 'Foguinho Amarelo', skin: 'amarelo', model: '/foguinho-amarelo.glb', som: '/amarelo.mp3' },
-    { id: 2, nome: 'Foguinho Vermelho', skin: 'vermelho', model: '/foguinho-vermelho.glb', som: '/vermelho.mp3' },
-    { id: 3, nome: 'Foguinho Roxo', skin: 'roxo', model: '/foguinho-roxo.glb', som: '/roxo.mp3' }
-  ];
-  res.json({ ok: true, foquinhos: list });
-});
-
-// Proteger páginas comuns (se existirem)
-app.get(['/dashboard.html','/mundo.html'], guard, (req, res, next) => next());
-
-// Fallback
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
-app.listen(PORT, () => console.log(`Foquinho server on http://localhost:${PORT}`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Servidor rodando na porta " + PORT));
