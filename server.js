@@ -17,7 +17,7 @@ app.use(session({
   saveUninitialized: true
 }));
 
-// Middleware de CSP relaxado para evitar erro de CSS externo bloqueado
+// Middleware de CSP relaxado (para evitar bloqueios de CSS/JS externos)
 app.use((req, res, next) => {
   res.setHeader("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
   next();
@@ -34,32 +34,39 @@ app.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/'));
 });
 
-// Rotas estáticas
+// Servir arquivos estáticos da raiz
 app.use(express.static(path.join(__dirname)));
 
-// Rotas para criar e listar foguinhos
+// Criar tabela se não existir
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS foguinhos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT,
     skin INTEGER,
     dias INTEGER,
-    dono TEXT
+    dono TEXT,
+    donoSecundario TEXT
   )`);
 });
 
+// Criar foguinho
 app.post('/criar-foguinho', (req, res) => {
   if (!req.session.user) return res.status(401).send('Não autenticado');
 
-  const { nome, skin } = req.body;
-  const stmt = db.prepare("INSERT INTO foguinhos (nome, skin, dias, dono) VALUES (?, ?, ?, ?)");
-  stmt.run(nome, skin, 0, req.session.user.username, function(err) {
-    if (err) return res.status(500).send("Erro ao salvar Foguinho");
+  const { nome, skin, dias, donoSecundario } = req.body;
+
+  const stmt = db.prepare("INSERT INTO foguinhos (nome, skin, dias, dono, donoSecundario) VALUES (?, ?, ?, ?, ?)");
+  stmt.run(nome, skin, dias || 0, req.session.user.username, donoSecundario || null, function(err) {
+    if (err) {
+      console.error("Erro ao salvar Foguinho:", err);
+      return res.status(500).send("Erro ao salvar Foguinho");
+    }
     res.redirect('/dashboard.html');
   });
   stmt.finalize();
 });
 
+// Listar foguinhos do usuário logado
 app.get('/meus-foguinhos', (req, res) => {
   if (!req.session.user) return res.status(401).json([]);
   db.all("SELECT * FROM foguinhos WHERE dono = ?", [req.session.user.username], (err, rows) => {
